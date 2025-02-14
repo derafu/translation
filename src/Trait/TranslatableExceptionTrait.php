@@ -69,7 +69,7 @@ trait TranslatableExceptionTrait
         int $code = 0,
         ?Throwable $previous = null
     ) {
-        $stringMessage = $this->XXX($message);
+        $stringMessage = $this->normalizeMessage($message);
 
         parent::__construct($stringMessage, $code, $previous);
     }
@@ -93,9 +93,13 @@ trait TranslatableExceptionTrait
     }
 
     /**
-     * TODO: DOCUMENTAR.
+     * Normalize the $message into a TranslatableMessage and return the default
+     * string for the exception.
+     *
+     * @param string|array|TranslatableInterface $message
+     * @return string
      */
-    protected function XXX(string|array|TranslatableInterface $message): string
+    protected function normalizeMessage(string|array|TranslatableInterface $message): string
     {
         if (is_array($message)) {
             if (empty($message)) {
