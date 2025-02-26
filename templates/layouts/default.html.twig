@@ -1,0 +1,73 @@
+{# layouts/default.html.twig #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Derafu: Project - Slogan{% endblock %}
+
+{% block body %}
+    {% block header %}
+        {% include 'components/header.html.twig' %}
+    {% endblock %}
+
+    {% block main %}
+        <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    {% block content %}{% endblock %}
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/' %}active{% endif %}" href="{{ base_path }}/">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/quick-start' %}active{% endif %}" href="{{ base_path }}/quick-start">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/api-reference' %}active{% endif %}" href="{{ base_path }}/api-reference">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/exceptions' %}active{% endif %}" href="{{ base_path }}/exceptions">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/icu-formatting' %}active{% endif %}" href="{{ base_path }}/icu-formatting">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/custom-providers' %}active{% endif %}" href="{{ base_path }}/custom-providers">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/advanced-usage' %}active{% endif %}" href="{{ base_path }}/advanced-usage">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/real-world' %}active{% endif %}" href="{{ base_path }}/real-world">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/symfony-integration' %}active{% endif %}" href="{{ base_path }}/symfony-integration">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action {% if request.uri.path == base_path ~ '/testing' %}active{% endif %}" href="{{ base_path }}/testing">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endblock %}
+
+    {% block footer %}
+        {% include 'components/footer.html.twig' %}
+    {% endblock %}
+{% endblock %}
