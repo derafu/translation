@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-symfony-integration-guide" href="symfony-integration.html#content-symfony-integration-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Symfony Integration Guide</h1>
+<p>This guide explains how to integrate the Derafu Translation library with Symfony’s translation system.</p>
+<ul class="table-of-contents">
+<li><a href="symfony-integration.html#content-basic-integration">Basic Integration</a></li>
+<li><a href="symfony-integration.html#content-using-symfonys-translator">Using Symfony’s Translator</a>
+<ul>
+<li><a href="symfony-integration.html#content-configuration">Configuration</a></li>
+<li><a href="symfony-integration.html#content-translation-files">Translation Files</a></li>
+<li><a href="symfony-integration.html#content-exception-handler">Exception Handler</a></li>
+<li><a href="symfony-integration.html#content-service-configuration">Service Configuration</a></li>
+</ul>
+</li>
+<li><a href="symfony-integration.html#content-advanced-usage">Advanced Usage</a>
+<ul>
+<li><a href="symfony-integration.html#content-custom-exception-response-format">Custom Exception Response Format</a></li>
+<li><a href="symfony-integration.html#content-locale-based-on-user-preferences">Locale Based on User Preferences</a></li>
+</ul>
+</li>
+<li><a href="symfony-integration.html#content-best-practices">Best Practices</a></li>
+</ul>
+<h2><a id="content-basic-integration" href="symfony-integration.html#content-basic-integration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Integration</h2>
+<p>The simplest way to use Derafu Translation with Symfony is to use Symfony’s translator directly:</p>
+<pre><code class="language-php">use Symfony\Component\Translation\Translator;
+use Symfony\Component\Translation\Loader\YamlFileLoader;
+
+class ErrorHandler
+{
+    public function __construct(
+        private readonly Translator $translator
+    ) {
+    }
+
+    public function handle(TranslatableException $e): void
+    {
+        $message = $e-&gt;trans($this-&gt;translator);
+        // Handle translated message.
+    }
+}
+</code></pre>
+<h2><a id="content-using-symfonys-translator" href="symfony-integration.html#content-using-symfonys-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using Symfony’s Translator</h2>
+<h3><a id="content-configuration" href="symfony-integration.html#content-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Configuration</h3>
+<pre><code class="language-yaml"># config/packages/translation.yaml
+framework:
+    default_locale: 'en'
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks:
+            - 'en'
+        paths:
+            - '%kernel.project_dir%/vendor/your-vendor/your-package/translations'
+</code></pre>
+<h3><a id="content-translation-files" href="symfony-integration.html#content-translation-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Files</h3>
+<pre><code class="language-yaml"># translations/errors.en.yaml
+validation:
+    required: 'The field {field} is required'
+    email:
+        invalid: 'The email {email} is not valid'
+    min_length: 'The field {field} must be at least {min} characters'
+
+# translations/errors.es.yaml
+validation:
+    required: 'El campo {field} es requerido'
+    email:
+        invalid: 'El email {email} no es válido'
+    min_length: 'El campo {field} debe tener al menos {min} caracteres'
+</code></pre>
+<h3><a id="content-exception-handler" href="symfony-integration.html#content-exception-handler" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Exception Handler</h3>
+<pre><code class="language-php">namespace App\EventListener;
+
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Derafu\Translation\Exception\Core\TranslatableException;
+
+class TranslatableExceptionListener
+{
+    public function __construct(
+        private readonly TranslatorInterface $translator
+    ) {
+    }
+
+    public function onKernelException(ExceptionEvent $event): void
+    {
+        $throwable = $event-&gt;getThrowable();
+
+        if (!$throwable instanceof TranslatableException) {
+            return;
+        }
+
+        $response = new JsonResponse([
+            'error' =&gt; $throwable-&gt;trans(
+                $this-&gt;translator,
+                $this-&gt;translator-&gt;getLocale()
+            ),
+        ]);
+
+        $event-&gt;setResponse($response);
+    }
+}
+</code></pre>
+<h3><a id="content-service-configuration" href="symfony-integration.html#content-service-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Service Configuration</h3>
+<pre><code class="language-yaml"># config/services.yaml
+services:
+    App\EventListener\TranslatableExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception }
+</code></pre>
+<h2><a id="content-advanced-usage" href="symfony-integration.html#content-advanced-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Advanced Usage</h2>
+<h3><a id="content-custom-exception-response-format" href="symfony-integration.html#content-custom-exception-response-format" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Custom Exception Response Format</h3>
+<pre><code class="language-php">class ApiExceptionListener
+{
+    public function onKernelException(ExceptionEvent $event): void
+    {
+        $throwable = $event-&gt;getThrowable();
+
+        if (!$throwable instanceof TranslatableException) {
+            return;
+        }
+
+        $response = new JsonResponse([
+            'status' =&gt; 'error',
+            'message' =&gt; [
+                'text' =&gt; $throwable-&gt;trans($this-&gt;translator),
+                'translation_key' =&gt; $throwable-&gt;getTranslatableMessage()-&gt;getId(),
+                'parameters' =&gt; $throwable-&gt;getTranslatableMessage()-&gt;getParameters(),
+            ],
+            'code' =&gt; $throwable-&gt;getCode(),
+        ]);
+
+        $event-&gt;setResponse($response);
+    }
+}
+</code></pre>
+<h3><a id="content-locale-based-on-user-preferences" href="symfony-integration.html#content-locale-based-on-user-preferences" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Locale Based on User Preferences</h3>
+<pre><code class="language-php">class LocaleListener
+{
+    public function onKernelRequest(RequestEvent $event): void
+    {
+        $request = $event-&gt;getRequest();
+
+        // Get locale from user preferences.
+        $locale = $request-&gt;getPreferredLanguage(['en', 'es']);
+
+        // Set for current request.
+        $request-&gt;setLocale($locale);
+
+        // Set for translator.
+        $this-&gt;translator-&gt;setLocale($locale);
+    }
+}
+</code></pre>
+<h2><a id="content-best-practices" href="symfony-integration.html#content-best-practices" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Best Practices</h2>
+<ol>
+<li>
+<p><strong>Organize Translation Files</strong></p>
+<pre><code>translations/
+├── errors/
+│   ├── validators.en.yaml
+│   ├── validators.es.yaml
+│   ├── forms.en.yaml
+│   └── forms.es.yaml
+└── messages/
+    ├── app.en.yaml
+    └── app.es.yaml
+</code></pre>
+</li>
+<li>
+<p><strong>Use Constants for Translation Keys</strong></p>
+<pre><code class="language-php">final class TranslationKeys
+{
+    public const VALIDATION_REQUIRED = 'validation.required';
+    public const VALIDATION_EMAIL = 'validation.email.invalid';
+    // ...
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Create Exception Factory</strong></p>
+<pre><code class="language-php">final class ValidationExceptionFactory
+{
+    public static function required(string $field): ValidationException
+    {
+        return new ValidationException([
+            TranslationKeys::VALIDATION_REQUIRED,
+            'field' =&gt; $field
+        ]);
+    }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Log Missing Translations</strong></p>
+<pre><code class="language-php">$this-&gt;translator-&gt;setFallbackLocales(['en']);
+$this-&gt;translator-&gt;addListener(
+    TranslationEvents::MISSING_TRANSLATION,
+    function(MissingTranslationEvent $event) {
+        $this-&gt;logger-&gt;warning(
+            'Missing translation: {key} for locale {locale}',
+            [
+                'key' =&gt; $event-&gt;getMessageId(),
+                'locale' =&gt; $event-&gt;getLocale()
+            ]
+        );
+    }
+);
+</code></pre>
+</li>
+</ol>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Keep translation files organized by domain.</li>
+<li>Use constants for translation keys to avoid typos.</li>
+<li>Create factories for common exceptions.</li>
+<li>Log missing translations in development.</li>
+<li>Use fallback locales appropriately.</li>
+<li>Consider user preferences for locale selection.</li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-api-reference" href="api-reference.html#content-api-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Reference</h1>
+<p>Complete reference documentation for the Derafu Translation library.</p>
+<ul class="table-of-contents">
+<li><a href="api-reference.html#content-interfaces">Interfaces</a>
+<ul>
+<li><a href="api-reference.html#content-translatableinterface">TranslatableInterface</a></li>
+<li><a href="api-reference.html#content-messageproviderinterface">MessageProviderInterface</a></li>
+</ul>
+</li>
+<li><a href="api-reference.html#content-classes">Classes</a>
+<ul>
+<li><a href="api-reference.html#content-translatablemessage">TranslatableMessage</a></li>
+<li><a href="api-reference.html#content-translator">Translator</a></li>
+</ul>
+</li>
+<li><a href="api-reference.html#content-exceptions">Exceptions</a>
+<ul>
+<li><a href="api-reference.html#content-translatableexception">TranslatableException</a></li>
+</ul>
+</li>
+<li><a href="api-reference.html#content-message-providers">Message Providers</a>
+<ul>
+<li><a href="api-reference.html#content-abstractmessageprovider">AbstractMessageProvider</a></li>
+<li><a href="api-reference.html#content-phpmessageprovider">PhpMessageProvider</a></li>
+<li><a href="api-reference.html#content-jsonmessageprovider">JsonMessageProvider</a></li>
+<li><a href="api-reference.html#content-yamlmessageprovider">YamlMessageProvider</a></li>
+</ul>
+</li>
+<li><a href="api-reference.html#content-error-handling">Error Handling</a></li>
+</ul>
+<h2><a id="content-interfaces" href="api-reference.html#content-interfaces" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Interfaces</h2>
+<h3><a id="content-translatableinterface" href="api-reference.html#content-translatableinterface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableInterface</h3>
+<p>Extends Symfony’s <code>TranslatorInterface</code> and adds ICU support.</p>
+<pre><code class="language-php">interface TranslatableInterface extends TranslatorInterface, Stringable
+{
+    /**
+     * Converts the message to a string using ICU formatting.
+     */
+    public function __toString(): string;
+}
+</code></pre>
+<h3><a id="content-messageproviderinterface" href="api-reference.html#content-messageproviderinterface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>MessageProviderInterface</h3>
+<p>Defines how translation messages are loaded.</p>
+<pre><code class="language-php">interface MessageProviderInterface
+{
+    /**
+     * Returns all messages for a given locale and domain.
+     *
+     * @param string $locale The locale to load messages for.
+     * @param string $domain The translation domain.
+     * @return array&lt;string, string&gt; Array of messages where key is the message id.
+     */
+    public function getMessages(string $locale, string $domain = 'messages'): array;
+
+    /**
+     * Returns all available locales for a given domain.
+     *
+     * @param string $domain The translation domain.
+     * @return array&lt;string&gt; List of available locales.
+     */
+    public function getAvailableLocales(string $domain = 'messages'): array;
+}
+</code></pre>
+<h2><a id="content-classes" href="api-reference.html#content-classes" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Classes</h2>
+<h3><a id="content-translatablemessage" href="api-reference.html#content-translatablemessage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableMessage</h3>
+<p>Core message class that supports ICU formatting.</p>
+<pre><code class="language-php">final class TranslatableMessage implements TranslatableInterface
+{
+    /**
+     * @param string $message The message used for translation.
+     * @param array&lt;string, mixed&gt; $parameters Parameters for translation.
+     * @param string|null $domain The translation domain.
+     * @param string $defaultLocale The locale for ICU formatting.
+     */
+    public function __construct(
+        string $message,
+        array $parameters = [],
+        ?string $domain = null,
+        string $defaultLocale = 'en'
+    );
+
+    /**
+     * @throws RuntimeException When ICU formatting fails.
+     */
+    public function __toString(): string;
+
+    public function trans(
+        TranslatorInterface $translator,
+        ?string $locale = null
+    ): string;
+}
+</code></pre>
+<h3><a id="content-translator" href="api-reference.html#content-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translator</h3>
+<p>Main translator implementation, using Symfony’s <code>TranslatorTrait</code>, with ICU and fallback support.</p>
+<pre><code class="language-php">final class Translator implements TranslatorInterface
+{
+    /**
+     * @param MessageProviderInterface $provider Provider of messages.
+     * @param string|null $locale Default locale.
+     * @param array|null $fallbackLocales Fallback locales chain.
+     */
+    public function __construct(
+        MessageProviderInterface $provider,
+        ?string $locale = null,
+        ?array $fallbackLocales = null
+    );
+
+    /**
+     * @throws IntlException When ICU formatting fails
+     */
+    public function trans(
+        ?string $id,
+        array $parameters = [],
+        ?string $domain = null,
+        ?string $locale = null
+    ): string;
+}
+</code></pre>
+<h2><a id="content-exceptions" href="api-reference.html#content-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Exceptions</h2>
+<h3><a id="content-translatableexception" href="api-reference.html#content-translatableexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableException</h3>
+<p>Base exception class that supports translation.</p>
+<pre><code class="language-php">abstract class TranslatableException extends Exception implements TranslatableInterface
+{
+    /**
+     * @param string|array|TranslatableInterface $message The exception message:
+     *   - string: Used as both message and translation key.
+     *   - array: First element is message, rest are parameters.
+     *   - TranslatableInterface: Used directly.
+     * @param int $code The exception code.
+     * @param Throwable|null $previous Previous exception.
+     * @throws InvalidArgumentException When message array is invalid.
+     */
+    public function __construct(
+        string|array|TranslatableInterface $message,
+        int $code = 0,
+        ?Throwable $previous = null
+    );
+
+    public function trans(
+        TranslatorInterface $translator,
+        ?string $locale = null
+    ): string;
+}
+</code></pre>
+<h2><a id="content-message-providers" href="api-reference.html#content-message-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Message Providers</h2>
+<h3><a id="content-abstractmessageprovider" href="api-reference.html#content-abstractmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>AbstractMessageProvider</h3>
+<p>Base class for file-based message providers.</p>
+<pre><code class="language-php">abstract class AbstractMessageProvider implements MessageProviderInterface
+{
+    /**
+     * @param string $directory Base directory for translation files.
+     * @throws RuntimeException If directory doesn't exist.
+     */
+    public function __construct(
+        protected readonly string $directory
+    );
+
+    /**
+     * Returns the file extension without dot.
+     */
+    abstract protected function getFileExtension(): string;
+
+    /**
+     * Parses a file into messages array.
+     *
+     * @throws RuntimeException If file can't be parsed.
+     */
+    abstract protected function parseFile(string $file): array;
+}
+</code></pre>
+<h3><a id="content-phpmessageprovider" href="api-reference.html#content-phpmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>PhpMessageProvider</h3>
+<p>Loads translations from PHP files.</p>
+<pre><code class="language-php">final class PhpMessageProvider extends AbstractMessageProvider
+{
+    /**
+     * Expected file format:
+     * &lt;?php
+     * return [
+     *     'key' =&gt; 'value',
+     * ];
+     *
+     * @throws RuntimeException If file doesn't return array.
+     */
+    protected function parseFile(string $file): array;
+}
+</code></pre>
+<h3><a id="content-jsonmessageprovider" href="api-reference.html#content-jsonmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>JsonMessageProvider</h3>
+<p>Loads translations from JSON files.</p>
+<pre><code class="language-php">final class JsonMessageProvider extends AbstractMessageProvider
+{
+    /**
+     * Expected file format:
+     * {
+     *     &quot;key&quot;: &quot;value&quot;
+     * }
+     *
+     * @throws RuntimeException If JSON is invalid.
+     */
+    protected function parseFile(string $file): array;
+}
+</code></pre>
+<h3><a id="content-yamlmessageprovider" href="api-reference.html#content-yamlmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>YamlMessageProvider</h3>
+<p>Loads translations from YAML files (requires symfony/yaml).</p>
+<pre><code class="language-php">final class YamlMessageProvider extends AbstractMessageProvider
+{
+    /**
+     * Expected file format:
+     * key: value
+     *
+     * @throws RuntimeException If YAML is invalid.
+     */
+    protected function parseFile(string $file): array;
+}
+</code></pre>
+<h2><a id="content-error-handling" href="api-reference.html#content-error-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Error Handling</h2>
+<p>All exceptions extend from base PHP exceptions.</p>
+<p>Common exceptions:</p>
+<ul>
+<li><code>TranslatableRuntimeException</code>: General runtime errors.</li>
+<li><code>TranslatableInvalidArgumentException</code>: Invalid input parameters.</li>
+</ul>
+<hr />
+<p>Can’t extend Derafu Translation exceptions? Then use <code>TranslatableExceptionTrait</code> in your exceptions to get the translation capabilities.</p>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-creating-custom-message-providers" href="custom-providers.html#content-creating-custom-message-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Creating Custom Message Providers</h1>
+<p>This guide explains how to create custom message providers for different translation storage formats and sources.</p>
+<ul class="table-of-contents">
+<li><a href="custom-providers.html#content-provider-interface">Provider Interface</a></li>
+<li><a href="custom-providers.html#content-basic-implementation">Basic Implementation</a></li>
+<li><a href="custom-providers.html#content-using-the-abstract-provider">Using the Abstract Provider</a></li>
+<li><a href="custom-providers.html#content-other-examples">Other Examples</a>
+<ul>
+<li><a href="custom-providers.html#content-redis-provider">Redis Provider</a></li>
+<li><a href="custom-providers.html#content-api-provider">API Provider</a></li>
+</ul>
+</li>
+<li><a href="custom-providers.html#content-best-practices">Best Practices</a></li>
+</ul>
+<h2><a id="content-provider-interface" href="custom-providers.html#content-provider-interface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Provider Interface</h2>
+<p>All message providers must implement the <code>MessageProviderInterface</code>:</p>
+<pre><code class="language-php">interface MessageProviderInterface
+{
+    /**
+     * Returns all messages for a given locale and domain.
+     *
+     * @param string $locale The locale to load messages for.
+     * @param string $domain The translation domain.
+     * @return array&lt;string, string&gt; Array of messages where key is the message id.
+     */
+    public function getMessages(string $locale, string $domain = 'messages'): array;
+
+    /**
+     * Returns all available locales for a given domain.
+     *
+     * @param string $domain The translation domain.
+     * @return array&lt;string&gt; List of available locales.
+     */
+    public function getAvailableLocales(string $domain = 'messages'): array;
+}
+</code></pre>
+<h2><a id="content-basic-implementation" href="custom-providers.html#content-basic-implementation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Implementation</h2>
+<p>Here’s a simple example of a custom provider that loads messages from a database:</p>
+<pre><code class="language-php">use Derafu\Translation\Contract\MessageProviderInterface;
+use PDO;
+
+final class DatabaseMessageProvider implements MessageProviderInterface
+{
+    public function __construct(
+        private readonly PDO $db,
+        private readonly string $table = 'translations'
+    ) {
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $stmt = $this-&gt;db-&gt;prepare(
+            &quot;SELECT message_key, message_text
+             FROM {$this-&gt;table}
+             WHERE locale = ? AND domain = ?&quot;
+        );
+        $stmt-&gt;execute([$locale, $domain]);
+
+        return $stmt-&gt;fetchAll(PDO::FETCH_KEY_PAIR);
+    }
+
+    public function getAvailableLocales(string $domain = 'messages'): array
+    {
+        $stmt = $this-&gt;db-&gt;prepare(
+            &quot;SELECT DISTINCT locale
+             FROM {$this-&gt;table}
+             WHERE domain = ?&quot;
+        );
+        $stmt-&gt;execute([$domain]);
+
+        return $stmt-&gt;fetchAll(PDO::FETCH_COLUMN);
+    }
+}
+</code></pre>
+<h2><a id="content-using-the-abstract-provider" href="custom-providers.html#content-using-the-abstract-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using the Abstract Provider</h2>
+<p>For file-based providers, you can extend the <code>AbstractMessageProvider</code>:</p>
+<pre><code class="language-php">use Derafu\Translation\Abstract\AbstractMessageProvider;
+
+final class IniMessageProvider extends AbstractMessageProvider
+{
+    protected function getFileExtension(): string
+    {
+        return 'ini';
+    }
+
+    protected function parseFile(string $file): array
+    {
+        $messages = parse_ini_file($file, false);
+        if ($messages === false) {
+            throw new RuntimeException(
+                sprintf('Could not parse INI file &quot;%s&quot;.', $file)
+            );
+        }
+
+        return $messages;
+    }
+}
+</code></pre>
+<p>The abstract provider handles:</p>
+<ul>
+<li>Directory structure validation.</li>
+<li>File path generation.</li>
+<li>Available locales discovery.</li>
+</ul>
+<p>You only need to implement:</p>
+<ul>
+<li><code>getFileExtension()</code>: Returns the file extension.</li>
+<li><code>parseFile()</code>: Parses the file content into messages array.</li>
+</ul>
+<h2><a id="content-other-examples" href="custom-providers.html#content-other-examples" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Other Examples</h2>
+<h3><a id="content-redis-provider" href="custom-providers.html#content-redis-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Redis Provider</h3>
+<pre><code class="language-php">use Redis;
+use Derafu\Translation\Contract\MessageProviderInterface;
+
+final class RedisMessageProvider implements MessageProviderInterface
+{
+    public function __construct(
+        private readonly Redis $redis,
+        private readonly string $prefix = 'translations:'
+    ) {
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $key = &quot;{$this-&gt;prefix}{$domain}:{$locale}&quot;;
+        $messages = $this-&gt;redis-&gt;hGetAll($key);
+
+        return $messages ?: [];
+    }
+
+    public function getAvailableLocales(string $domain = 'messages'): array
+    {
+        $pattern = &quot;{$this-&gt;prefix}{$domain}:*&quot;;
+        $keys = $this-&gt;redis-&gt;keys($pattern);
+
+        return array_map(
+            fn($key) =&gt; substr($key, strrpos($key, ':') + 1),
+            $keys
+        );
+    }
+}
+</code></pre>
+<h3><a id="content-api-provider" href="custom-providers.html#content-api-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Provider</h3>
+<pre><code class="language-php">use GuzzleHttp\Client;
+use Derafu\Translation\Contract\MessageProviderInterface;
+
+final class ApiMessageProvider implements MessageProviderInterface
+{
+    public function __construct(
+        private readonly Client $client,
+        private readonly string $baseUrl
+    ) {
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $response = $this-&gt;client-&gt;get(
+            &quot;{$this-&gt;baseUrl}/translations/{$domain}/{$locale}&quot;
+        );
+
+        return json_decode(
+            $response-&gt;getBody()-&gt;getContents(),
+            true
+        );
+    }
+
+    public function getAvailableLocales(string $domain = 'messages'): array
+    {
+        $response = $this-&gt;client-&gt;get(
+            &quot;{$this-&gt;baseUrl}/translations/{$domain}/locales&quot;
+        );
+
+        return json_decode(
+            $response-&gt;getBody()-&gt;getContents(),
+            true
+        );
+    }
+}
+</code></pre>
+<h2><a id="content-best-practices" href="custom-providers.html#content-best-practices" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Best Practices</h2>
+<ol>
+<li>
+<p><strong>Error Handling</strong></p>
+<pre><code class="language-php">protected function parseFile(string $file): array
+{
+    try {
+        // Parse file.
+    } catch (Exception $e) {
+        throw new RuntimeException(
+            sprintf('Error parsing file &quot;%s&quot;: %s', $file, $e-&gt;getMessage())
+        );
+    }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Caching Support</strong></p>
+<pre><code class="language-php">final class CachedProvider implements MessageProviderInterface
+{
+    public function __construct(
+        private readonly MessageProviderInterface $provider,
+        private readonly CacheInterface $cache,
+        private readonly int $ttl = 3600
+    ) {
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $key = &quot;translations:{$domain}:{$locale}&quot;;
+
+        return $this-&gt;cache-&gt;remember($key, $this-&gt;ttl, function() use ($locale, $domain) {
+            return $this-&gt;provider-&gt;getMessages($locale, $domain);
+        });
+    }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Validation</strong></p>
+<pre><code class="language-php">private function validateMessages(array $messages): void
+{
+    foreach ($messages as $key =&gt; $value) {
+        if (!is_string($key)) {
+            throw new RuntimeException('Message keys must be strings.');
+        }
+        if (!is_string($value)) {
+            throw new RuntimeException('Message values must be strings.');
+        }
+    }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Logging and Debugging</strong></p>
+<pre><code class="language-php">public function getMessages(string $locale, string $domain = 'messages'): array
+{
+    $messages = $this-&gt;loadMessages($locale, $domain);
+
+    if (empty($messages)) {
+        $this-&gt;logger-&gt;warning(
+            'No messages found for locale {locale} and domain {domain}.',
+            ['locale' =&gt; $locale, 'domain' =&gt; $domain]
+        );
+    }
+
+    return $messages;
+}
+</code></pre>
+</li>
+</ol>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Always validate input and output.</li>
+<li>Handle errors gracefully.</li>
+<li>Consider implementing caching for performance.</li>
+<li>Add logging for debugging.</li>
+<li>Keep providers focused and single-purpose.</li>
+<li>Use dependency injection for external services.</li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

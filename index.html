@@ -1,1 +1,212 @@
-Soon.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-derafu-translation---translation-library-with-exception-support" href="index.html#content-derafu-translation---translation-library-with-exception-support" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Derafu: Translation - Translation Library with Exception Support</h1>
+<p><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://github.com/derafu/translation/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/derafu/translation/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" /></a>
+<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<p>A PHP library that solves one specific problem: <strong>making exceptions translatable without compromising your existing code</strong>, while providing powerful ICU message formatting support.</p>
+<h2><a id="content-features" href="index.html#content-features" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Features</h2>
+<ul>
+<li>🔄 <strong>Translatable Exceptions</strong>: Make any exception translatable with minimal changes.</li>
+<li>🌍 <strong>ICU Support</strong>: Built-in ICU message formatting for complex messages.</li>
+<li>📦 <strong>Multiple Formats</strong>: Load translations from PHP, JSON, YAML files or custom provider.</li>
+<li>⛓️ <strong>Locale Fallback</strong>: Configurable locale fallback chain.</li>
+<li>🎯 <strong>Framework Agnostic</strong>: Works with any system implementing Symfony’s TranslatorInterface.</li>
+<li>🪶 <strong>Lightweight</strong>: Minimal dependencies (only requires <code>symfony/translation-contracts</code>).</li>
+<li>🧩 <strong>Extensible</strong>: Easy to add custom message providers.</li>
+</ul>
+<h2><a id="content-installation" href="index.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
+<pre><code class="language-bash">composer require derafu/translation
+</code></pre>
+<h2><a id="content-basic-usage" href="index.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<h3><a id="content-making-exceptions-translatable" href="index.html#content-making-exceptions-translatable" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Making Exceptions Translatable</h3>
+<pre><code class="language-php">// Before: Your existing exception.
+class ValidationException extends Exception
+{
+    public function __construct(string $message)
+    {
+        parent::__construct($message);
+    }
+}
+
+// After: Just change the parent class.
+class ValidationException extends TranslatableException
+{
+    // No changes needed!
+}
+</code></pre>
+<h3><a id="content-using-translatable-exceptions" href="index.html#content-using-translatable-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using Translatable Exceptions</h3>
+<pre><code class="language-php">// 1. Simple string (works like before).
+throw new ValidationException('Email is invalid');
+
+// 2. With translation key and parameters.
+throw new ValidationException([
+    'validation.email.invalid',
+    'email' =&gt; 'test@example.com'
+]);
+
+// 3. With ICU formatting.
+throw new ValidationException(
+    'The email {email} is not valid',
+    ['email' =&gt; 'test@example.com']
+);
+
+// 4. With complex ICU patterns.
+throw new ValidationException(
+    '{gender, select, female{She} male{He} other{They}} sent {count, plural, one{# message} other{# messages}}',
+    [
+        'gender' =&gt; 'female',
+        'count' =&gt; 5
+    ]
+);
+</code></pre>
+<h3><a id="content-translation-files" href="index.html#content-translation-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Files</h3>
+<p>Support for multiple formats:</p>
+<pre><code class="language-php">// PHP arrays (fastest).
+// translations/messages/en.php
+return [
+    'welcome' =&gt; 'Welcome {name}!',
+    'messages' =&gt; '{count, plural, =0{No messages} one{# message} other{# messages}}'
+];
+
+// JSON.
+// translations/messages/en.json
+{
+    &quot;welcome&quot;: &quot;Welcome {name}!&quot;,
+    &quot;messages&quot;: &quot;{count, plural, =0{No messages} one{# message} other{# messages}}&quot;
+}
+
+// YAML (requires symfony/yaml).
+# translations/messages/en.yaml
+welcome: 'Welcome {name}!'
+messages: '{count, plural, =0{No messages} one{# message} other{# messages}}'
+</code></pre>
+<h3><a id="content-setting-up-the-translator" href="index.html#content-setting-up-the-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Setting Up the Translator</h3>
+<pre><code class="language-php">use Derafu\Translation\Translator;
+use Derafu\Translation\Provider\PhpMessageProvider;
+
+// Create provider.
+$provider = new PhpMessageProvider(__DIR__ . '/translations');
+
+// Create translator with fallback locales.
+$translator = new Translator(
+    $provider,
+    'en', // Optional. Default `null` for Translator y 'en' for ICU.
+    ['es_CL', 'es', 'en'] // Optional. Default are: 'en', 'en_US', 'es', 'es_CL'.
+);
+
+// Use in your exception handling.
+try {
+    // Your code.
+} catch (TranslatableException $e) {
+    // Get translation for current locale.
+    echo $e-&gt;trans($translator);
+
+    // Or specific locale.
+    echo $e-&gt;trans($translator, 'es');
+}
+</code></pre>
+<h2><a id="content-message-providers" href="index.html#content-message-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Message Providers</h2>
+<p>The library includes three message providers:</p>
+<ul>
+<li><code>PhpMessageProvider</code>: Uses PHP files returning arrays (fastest).</li>
+<li><code>JsonMessageProvider</code>: Uses JSON files.</li>
+<li><code>YamlMessageProvider</code>: Uses YAML files (requires <code>symfony/yaml</code>).</li>
+</ul>
+<h2><a id="content-key-benefits" href="index.html#content-key-benefits" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Key Benefits</h2>
+<ol>
+<li><strong>Zero Compromise</strong>: Keep your existing exception handling code.</li>
+<li><strong>ICU Power</strong>: Full ICU message formatting support.</li>
+<li><strong>Flexible Loading</strong>: Choose your preferred translation file format.</li>
+<li><strong>Clean Separation</strong>: Error logic stays separate from presentation.</li>
+<li><strong>Type Safe</strong>: Full PHP 8.3+ type safety.</li>
+</ol>
+<h2><a id="content-when-to-use-this-library" href="index.html#content-when-to-use-this-library" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>When to Use This Library</h2>
+<p>This library is perfect when you:</p>
+<ul>
+<li>Need to internationalize exceptions without refactoring.</li>
+<li>Want ICU message formatting support.</li>
+<li>Need flexible translation file formats.</li>
+<li>Want to keep error handling and translation separate.</li>
+<li>Use exceptions for business logic validation.</li>
+</ul>
+<h2><a id="content-license" href="index.html#content-license" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>License</h2>
+<p>This library is licensed under the MIT License. See the <code>LICENSE</code> file for more details.</p>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action active" href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

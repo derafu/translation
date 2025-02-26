@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-icu-message-formatting-guide" href="icu-formatting.html#content-icu-message-formatting-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>ICU Message Formatting Guide</h1>
+<p>This guide covers ICU (International Components for Unicode) message formatting in the context of the Derafu Translation library. ICU provides powerful tools for handling pluralization, gender, and complex message patterns.</p>
+<ul class="table-of-contents">
+<li><a href="icu-formatting.html#content-basic-placeholders">Basic Placeholders</a></li>
+<li><a href="icu-formatting.html#content-pluralization">Pluralization</a></li>
+<li><a href="icu-formatting.html#content-gender-selection">Gender Selection</a></li>
+<li><a href="icu-formatting.html#content-number-formatting">Number Formatting</a></li>
+<li><a href="icu-formatting.html#content-nested-formatting">Nested Formatting</a></li>
+<li><a href="icu-formatting.html#content-common-patterns">Common Patterns</a></li>
+<li><a href="icu-formatting.html#content-troubleshooting">Troubleshooting</a></li>
+</ul>
+<h2><a id="content-basic-placeholders" href="icu-formatting.html#content-basic-placeholders" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Placeholders</h2>
+<p>The simplest form of ICU formatting uses named placeholders:</p>
+<pre><code class="language-php">throw new ValidationException(
+    'The field {field} is required.',
+    ['field' =&gt; 'email'],
+);
+// Output: &quot;The field email is required.&quot;.
+</code></pre>
+<p>Multiple placeholders are supported:</p>
+<pre><code class="language-php">throw new ValidationException(
+    'Value {value} for field {field} is invalid.',
+    [
+        'value' =&gt; 'test@',
+        'field' =&gt; 'email',
+    ],
+);
+// Output: &quot;Value test@ for field email is invalid.&quot;
+</code></pre>
+<h2><a id="content-pluralization" href="icu-formatting.html#content-pluralization" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Pluralization</h2>
+<p>ICU provides robust pluralization support with multiple forms:</p>
+<pre><code class="language-php">// Basic pluralization.
+$message = '{count, plural, =0{No messages} one{# message} other{# messages}}';
+$translator-&gt;trans($message, ['count' =&gt; 2]);  // &quot;2 messages&quot;
+$translator-&gt;trans($message, ['count' =&gt; 1]);  // &quot;1 message&quot;
+$translator-&gt;trans($message, ['count' =&gt; 0]);  // &quot;No messages&quot;
+
+// With exact matches and ranges.
+$message = '{count, plural,
+    =0 {No items}
+    =1 {One item}
+    =2 {A couple of items}
+    other {# items}
+}';
+</code></pre>
+<p>Available plural categories:</p>
+<ul>
+<li><code>zero</code>: For languages with special zero forms.</li>
+<li><code>one</code>: Singular form.</li>
+<li><code>two</code>: Dual form (for languages that have it).</li>
+<li><code>few</code>: For languages with special handling of small numbers.</li>
+<li><code>many</code>: For languages with special handling of large numbers.</li>
+<li><code>other</code>: Default form (required).</li>
+<li><code>=n</code>: Exact number matches.</li>
+</ul>
+<h2><a id="content-gender-selection" href="icu-formatting.html#content-gender-selection" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Gender Selection</h2>
+<p>Gender-based message formatting:</p>
+<pre><code class="language-php">$message = '{gender, select,
+    female {She liked your post}
+    male {He liked your post}
+    other {They liked your post}
+}';
+
+$translator-&gt;trans($message, ['gender' =&gt; 'female']);
+// Output: &quot;She liked your post&quot;.
+</code></pre>
+<p>Complex gender example with variables:</p>
+<pre><code class="language-php">$message = '{gender, select,
+    female {{name} added her comment}
+    male {{name} added his comment}
+    other {{name} added their comment}
+}';
+
+$translator-&gt;trans($message, [
+    'gender' =&gt; 'female',
+    'name' =&gt; 'Alice'
+]);
+// Output: &quot;Alice added her comment&quot;.
+</code></pre>
+<h2><a id="content-number-formatting" href="icu-formatting.html#content-number-formatting" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Number Formatting</h2>
+<p>ICU supports various number formats:</p>
+<pre><code class="language-php">// Basic number.
+'{value, number}'
+
+// With minimum decimals.
+'{value, number, .00}'
+
+// Percentage.
+'{value, number, percent}'
+
+// Currency.
+'{value, number, currency}'
+</code></pre>
+<p>Example in context:</p>
+<pre><code class="language-php">throw new ValidationException(
+    'Balance must be greater than {min, number, currency}.',
+    ['min' =&gt; 100],
+);
+// Output: &quot;Balance must be greater than $100.00&quot;.
+</code></pre>
+<h2><a id="content-nested-formatting" href="icu-formatting.html#content-nested-formatting" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Nested Formatting</h2>
+<p>ICU patterns can be nested for complex scenarios:</p>
+<pre><code class="language-php">$message = '{gender, select,
+    female {
+        {count, plural,
+            =0 {She has no messages}
+            one {She has # message}
+            other {She has # messages}
+        }
+    }
+    male {
+        {count, plural,
+            =0 {He has no messages}
+            one {He has # message}
+            other {He has # messages}
+        }
+    }
+    other {
+        {count, plural,
+            =0 {They have no messages}
+            one {They have # message}
+            other {They have # messages}
+        }
+    }
+}';
+
+$translator-&gt;trans($message, [
+    'gender' =&gt; 'female',
+    'count' =&gt; 5,
+]);
+// Output: &quot;She has 5 messages&quot;.
+</code></pre>
+<h2><a id="content-common-patterns" href="icu-formatting.html#content-common-patterns" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Patterns</h2>
+<p>Here are some common patterns used in validation messages:</p>
+<pre><code class="language-php">// Range validation.
+'Value must be between {min} and {max}.'
+
+// List validation.
+'{count, plural,
+    =0 {List cannot be empty}
+    one {At least one item is required}
+    other {At least # items are required}
+}'
+
+// Status messages.
+'{status, select,
+    pending {Waiting for approval}
+    approved {Approved on {date}}
+    rejected {Rejected: {reason}}
+    other {Unknown status}
+}'
+
+// File validation.
+'{type, select,
+    image {Only images are allowed}
+    document {Only documents are allowed}
+    other {Invalid file type}
+}, max size: {size}'
+</code></pre>
+<h2><a id="content-troubleshooting" href="icu-formatting.html#content-troubleshooting" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Troubleshooting</h2>
+<p>Common issues and solutions:</p>
+<ol>
+<li>
+<p><strong>Missing ‘other’ category</strong></p>
+<pre><code class="language-php">// Wrong.
+'{gender, select, male{He} female{She}}'
+
+// Correct.
+'{gender, select, male{He} female{She} other{They}}'
+</code></pre>
+</li>
+<li>
+<p><strong>Invalid nesting</strong></p>
+<pre><code class="language-php">// Wrong.
+'{outer, select, a{{inner}}'
+
+// Correct.
+'{outer, select, a {{inner}} other {default}}'
+</code></pre>
+</li>
+<li>
+<p><strong>Unmatched braces</strong></p>
+<pre><code class="language-php">// Wrong.
+'Hello {name'
+
+// Correct.
+'Hello {name}'
+</code></pre>
+</li>
+<li>
+<p><strong>Missing parameters</strong></p>
+<pre><code class="language-php">// Will fail if 'count' is not provided.
+'{count} items'
+</code></pre>
+</li>
+</ol>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Always include the ‘other’ case in select/plural patterns.</li>
+<li>Check braces are properly matched.</li>
+<li>Ensure all used parameters are provided.</li>
+<li>Test with different values and locales.</li>
+</ul>
+<hr />
+<p>For more information about ICU message format:</p>
+<ul>
+<li><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://unicode-org.github.io/icu/userguide/format_parse/messages/">ICU User Guide</a></li>
+<li><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://messageformat.github.io/messageformat/">MessageFormat Guide</a></li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

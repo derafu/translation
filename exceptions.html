@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-working-with-translatable-exceptions" href="exceptions.html#content-working-with-translatable-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with Translatable Exceptions</h1>
+<p>This guide covers all aspects of working with exceptions in the Derafu Translation library.</p>
+<ul class="table-of-contents">
+<li><a href="exceptions.html#content-available-exceptions">Available Exceptions</a>
+<ul>
+<li><a href="exceptions.html#content-core-exceptions">Core Exceptions</a></li>
+<li><a href="exceptions.html#content-logic-exceptions">Logic Exceptions</a></li>
+<li><a href="exceptions.html#content-runtime-exceptions">Runtime Exceptions</a></li>
+</ul>
+</li>
+<li><a href="exceptions.html#content-using-the-trait">Using the Trait</a>
+<ul>
+<li><a href="exceptions.html#content-translatableexceptiontrait">TranslatableExceptionTrait</a></li>
+<li><a href="exceptions.html#content-when-to-use-the-trait-vs-extending-base-exceptions">When to Use the Trait vs Extending Base Exceptions</a></li>
+</ul>
+</li>
+<li><a href="exceptions.html#content-when-to-use-each-exception">When to Use Each Exception</a>
+<ul>
+<li><a href="exceptions.html#content-translatableexception">TranslatableException</a></li>
+<li><a href="exceptions.html#content-translatablelogicexception">TranslatableLogicException</a></li>
+<li><a href="exceptions.html#content-translatabledomainexception">TranslatableDomainException</a></li>
+<li><a href="exceptions.html#content-translatableinvalidargumentexception">TranslatableInvalidArgumentException</a></li>
+<li><a href="exceptions.html#content-translatablelengthexception">TranslatableLengthException</a></li>
+<li><a href="exceptions.html#content-translatableoutofrangeexception">TranslatableOutOfRangeException</a></li>
+<li><a href="exceptions.html#content-translatableoutofboundsexception">TranslatableOutOfBoundsException</a></li>
+<li><a href="exceptions.html#content-translatablerangeexception">TranslatableRangeException</a></li>
+<li><a href="exceptions.html#content-translatableunexpectedvalueexception">TranslatableUnexpectedValueException</a></li>
+</ul>
+</li>
+<li><a href="exceptions.html#content-best-practices">Best Practices</a>
+<ul>
+<li><a href="exceptions.html#content-example-hierarchy">Example hierarchy</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-available-exceptions" href="exceptions.html#content-available-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Available Exceptions</h2>
+<p>The library provides translatable versions of all standard PHP exceptions:</p>
+<h3><a id="content-core-exceptions" href="exceptions.html#content-core-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Core Exceptions</h3>
+<ul>
+<li><code>TranslatableException</code>: Base exception.</li>
+<li><code>TranslatableLogicException</code>: For logical errors.</li>
+<li><code>TranslatableRuntimeException</code>: For runtime errors.</li>
+</ul>
+<h3><a id="content-logic-exceptions" href="exceptions.html#content-logic-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Logic Exceptions</h3>
+<ul>
+<li><code>TranslatableDomainException</code>: Domain logic violations.</li>
+<li><code>TranslatableInvalidArgumentException</code>: Invalid input.</li>
+<li><code>TranslatableLengthException</code>: Invalid length.</li>
+<li><code>TranslatableOutOfRangeException</code>: Value out of valid set.</li>
+</ul>
+<h3><a id="content-runtime-exceptions" href="exceptions.html#content-runtime-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Runtime Exceptions</h3>
+<ul>
+<li><code>TranslatableOutOfBoundsException</code>: Invalid index or key.</li>
+<li><code>TranslatableOverflowException</code>: Arithmetic overflow.</li>
+<li><code>TranslatableRangeException</code>: Value not within range.</li>
+<li><code>TranslatableUnderflowException</code>: Arithmetic underflow.</li>
+<li><code>TranslatableUnexpectedValueException</code>: Unexpected value type.</li>
+</ul>
+<h2><a id="content-using-the-trait" href="exceptions.html#content-using-the-trait" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using the Trait</h2>
+<h3><a id="content-translatableexceptiontrait" href="exceptions.html#content-translatableexceptiontrait" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableExceptionTrait</h3>
+<p>If you want to add translation capabilities to your own exceptions, you can use the trait:</p>
+<pre><code class="language-php">use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Exception\TranslatableExceptionTrait;
+use DomainException;
+
+class MyCustomException extends DomainException implements TranslatableInterface
+{
+    use TranslatableExceptionTrait;
+}
+</code></pre>
+<h3><a id="content-when-to-use-the-trait-vs-extending-base-exceptions" href="exceptions.html#content-when-to-use-the-trait-vs-extending-base-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>When to Use the Trait vs Extending Base Exceptions</h3>
+<p>Use the trait when:</p>
+<ul>
+<li>You already extend another exception.</li>
+<li>You need to customize the exception behavior.</li>
+<li>You want to add additional functionality.</li>
+</ul>
+<p>Use the base exceptions when:</p>
+<ul>
+<li>You don’t need custom behavior.</li>
+<li>You want the simplest implementation.</li>
+<li>You’re creating domain-specific exceptions.</li>
+</ul>
+<p>Example with trait:</p>
+<pre><code class="language-php">class OrderException extends DomainException implements TranslatableInterface
+{
+    use TranslatableExceptionTrait;
+
+    protected string $defaultDomain = 'orders';
+
+    public static function insufficientStock(Product $product): self
+    {
+        return new self([
+            'order.insufficient_stock',
+            'product' =&gt; $product-&gt;getName(),
+        ]);
+    }
+}
+</code></pre>
+<p>Example with inheritance:</p>
+<pre><code class="language-php">class ValidationException extends TranslatableDomainException
+{
+    // Inherits all translation functionality.
+}
+</code></pre>
+<h2><a id="content-when-to-use-each-exception" href="exceptions.html#content-when-to-use-each-exception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>When to Use Each Exception</h2>
+<h3><a id="content-translatableexception" href="exceptions.html#content-translatableexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableException</h3>
+<p>Base exception, use when:</p>
+<ul>
+<li>General error conditions.</li>
+<li>No specific exception type fits.</li>
+<li>Creating custom exception hierarchies.</li>
+</ul>
+<p>Real-world examples:</p>
+<ol>
+<li>
+<p>Generic API errors.</p>
+<pre><code class="language-php">throw new TranslatableException([
+    'api.error.generic',
+    'code' =&gt; $errorCode,
+]);
+</code></pre>
+</li>
+<li>
+<p>System configuration errors.</p>
+<pre><code class="language-php">throw new TranslatableException([
+    'system.config.missing',
+    'key' =&gt; 'database.host',
+]);
+</code></pre>
+</li>
+<li>
+<p>Third-party service errors.</p>
+<pre><code class="language-php">throw new TranslatableException([
+    'service.unavailable',
+    'service' =&gt; 'payment',
+    'reason' =&gt; $response-&gt;getError(),
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatablelogicexception" href="exceptions.html#content-translatablelogicexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableLogicException</h3>
+<p>For programming errors that can be detected during development:</p>
+<ol>
+<li>
+<p>Invalid business rule implementation.</p>
+<pre><code class="language-php">throw new TranslatableLogicException([
+    'logic.invalid_workflow',
+    'state' =&gt; $currentState,
+    'action' =&gt; $attemptedAction,
+]);
+</code></pre>
+</li>
+<li>
+<p>Configuration errors.</p>
+<pre><code class="language-php">throw new TranslatableLogicException([
+    'config.invalid_combination',
+    'option1' =&gt; $value1,
+    'option2' =&gt; $value2,
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid method usage.</p>
+<pre><code class="language-php">throw new TranslatableLogicException([
+    'method.invalid_order',
+    'method' =&gt; 'process',
+    'required_before' =&gt; 'validate',
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatabledomainexception" href="exceptions.html#content-translatabledomainexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableDomainException</h3>
+<p>For violations of domain rules:</p>
+<ol>
+<li>
+<p>Business rule violations.</p>
+<pre><code class="language-php">throw new TranslatableDomainException([
+    'order.invalid_status_transition',
+    'from' =&gt; $currentStatus,
+    'to' =&gt; $newStatus,
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid entity state.</p>
+<pre><code class="language-php">throw new TranslatableDomainException([
+    'product.cannot_publish',
+    'reason' =&gt; 'missing_price',
+]);
+</code></pre>
+</li>
+<li>
+<p>Business constraint violations.</p>
+<pre><code class="language-php">throw new TranslatableDomainException([
+    'account.overdraft_limit_exceeded',
+    'amount' =&gt; $amount,
+    'limit' =&gt; $overdraftLimit,
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatableinvalidargumentexception" href="exceptions.html#content-translatableinvalidargumentexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableInvalidArgumentException</h3>
+<p>For invalid input values:</p>
+<ol>
+<li>
+<p>Invalid parameter types.</p>
+<pre><code class="language-php">throw new TranslatableInvalidArgumentException([
+    'argument.invalid_type',
+    'argument' =&gt; 'date',
+    'expected' =&gt; 'DateTime',
+    'received' =&gt; get_debug_type($date),
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid format.</p>
+<pre><code class="language-php">throw new TranslatableInvalidArgumentException([
+    'argument.invalid_format',
+    'field' =&gt; 'phone',
+    'format' =&gt; '+XX-XXX-XXXXXX',
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid options.</p>
+<pre><code class="language-php">throw new TranslatableInvalidArgumentException([
+    'argument.invalid_option',
+    'option' =&gt; 'sort',
+    'valid' =&gt; implode(', ', $validOptions),
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatablelengthexception" href="exceptions.html#content-translatablelengthexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableLengthException</h3>
+<p>For invalid lengths:</p>
+<ol>
+<li>
+<p>String length violations.</p>
+<pre><code class="language-php">throw new TranslatableLengthException([
+    'length.string_too_long',
+    'field' =&gt; 'title',
+    'max' =&gt; 255,
+    'current' =&gt; strlen($title),
+]);
+</code></pre>
+</li>
+<li>
+<p>Collection size issues.</p>
+<pre><code class="language-php">throw new TranslatableLengthException([
+    'length.too_many_items',
+    'max' =&gt; 10,
+    'current' =&gt; count($items),
+]);
+</code></pre>
+</li>
+<li>
+<p>Buffer size problems.</p>
+<pre><code class="language-php">throw new TranslatableLengthException([
+    'length.buffer_overflow',
+    'size' =&gt; $bufferSize,
+    'required' =&gt; $requiredSize,
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatableoutofrangeexception" href="exceptions.html#content-translatableoutofrangeexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableOutOfRangeException</h3>
+<p>For values outside valid set:</p>
+<ol>
+<li>
+<p>Invalid enum values.</p>
+<pre><code class="language-php">throw new TranslatableOutOfRangeException([
+    'value.invalid_status',
+    'value' =&gt; $status,
+    'valid' =&gt; implode(', ', Status::cases()),
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid date ranges.</p>
+<pre><code class="language-php">throw new TranslatableOutOfRangeException([
+    'date.out_of_range',
+    'date' =&gt; $date-&gt;format('Y-m-d'),
+    'min' =&gt; $minDate-&gt;format('Y-m-d'),
+    'max' =&gt; $maxDate-&gt;format('Y-m-d'),
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid numerical ranges.</p>
+<pre><code class="language-php">throw new TranslatableOutOfRangeException([
+    'value.out_of_range',
+    'value' =&gt; $percentage,
+    'min' =&gt; 0,
+    'max' =&gt; 100,
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatableoutofboundsexception" href="exceptions.html#content-translatableoutofboundsexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableOutOfBoundsException</h3>
+<p>For invalid array/collection access:</p>
+<ol>
+<li>
+<p>Invalid array index.</p>
+<pre><code class="language-php">throw new TranslatableOutOfBoundsException([
+    'index.invalid',
+    'index' =&gt; $index,
+    'max' =&gt; count($array) - 1,
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid page number.</p>
+<pre><code class="language-php">throw new TranslatableOutOfBoundsException([
+    'page.invalid',
+    'page' =&gt; $page,
+    'total' =&gt; $totalPages,
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid collection access.</p>
+<pre><code class="language-php">throw new TranslatableOutOfBoundsException([
+    'record.not_found',
+    'id' =&gt; $id,
+    'type' =&gt; 'user',
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatablerangeexception" href="exceptions.html#content-translatablerangeexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableRangeException</h3>
+<p>For values technically valid but not allowed:</p>
+<ol>
+<li>
+<p>Value scale errors.</p>
+<pre><code class="language-php">throw new TranslatableRangeException([
+    'number.too_many_decimals',
+    'value' =&gt; $number,
+    'max_decimals' =&gt; 2,
+]);
+</code></pre>
+</li>
+<li>
+<p>Business range violations.</p>
+<pre><code class="language-php">throw new TranslatableRangeException([
+    'discount.exceeds_limit',
+    'discount' =&gt; $discount,
+    'max_allowed' =&gt; $maxDiscount,
+]);
+</code></pre>
+</li>
+<li>
+<p>Technical limitations.</p>
+<pre><code class="language-php">throw new TranslatableRangeException([
+    'file.too_large',
+    'size' =&gt; $fileSize,
+    'max' =&gt; $maxUploadSize,
+]);
+</code></pre>
+</li>
+</ol>
+<h3><a id="content-translatableunexpectedvalueexception" href="exceptions.html#content-translatableunexpectedvalueexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableUnexpectedValueException</h3>
+<p>For values of unexpected type:</p>
+<ol>
+<li>
+<p>Invalid return values.</p>
+<pre><code class="language-php">throw new TranslatableUnexpectedValueException([
+    'api.unexpected_response',
+    'expected' =&gt; 'array',
+    'received' =&gt; gettype($response),
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid data format.</p>
+<pre><code class="language-php">throw new TranslatableUnexpectedValueException([
+    'data.invalid_format',
+    'expected' =&gt; 'JSON',
+    'received' =&gt; $detectedFormat,
+]);
+</code></pre>
+</li>
+<li>
+<p>Invalid state values.</p>
+<pre><code class="language-php">throw new TranslatableUnexpectedValueException([
+    'state.unexpected',
+    'state' =&gt; $currentState,
+    'expected' =&gt; implode(', ', $validStates),
+]);
+</code></pre>
+</li>
+</ol>
+<h2><a id="content-best-practices" href="exceptions.html#content-best-practices" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Best Practices</h2>
+<ol>
+<li>
+<p><strong>Choose Specific Exceptions</strong></p>
+<ul>
+<li>Use the most specific exception type available.</li>
+<li>Consider the error’s nature (logic vs runtime).</li>
+<li>Think about error recovery possibilities.</li>
+</ul>
+</li>
+<li>
+<p><strong>Consistent Domain Language</strong></p>
+<ul>
+<li>Use consistent translation keys.</li>
+<li>Group related messages.</li>
+<li>Use clear, descriptive keys.</li>
+</ul>
+</li>
+<li>
+<p><strong>Provide Context</strong></p>
+<ul>
+<li>Include relevant parameters.</li>
+<li>Add debugging information.</li>
+<li>Consider logging needs.</li>
+</ul>
+</li>
+<li>
+<p><strong>Exception Hierarchy</strong></p>
+<ul>
+<li>Create domain-specific exceptions.</li>
+<li>Extend appropriate base classes.</li>
+<li>Use meaningful inheritance chains.</li>
+</ul>
+</li>
+<li>
+<p><strong>Translation Keys</strong></p>
+<ul>
+<li>Use consistent naming patterns.</li>
+<li>Group by domain/module.</li>
+<li>Include error type in key.</li>
+</ul>
+</li>
+</ol>
+<h3><a id="content-example-hierarchy" href="exceptions.html#content-example-hierarchy" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Example hierarchy</h3>
+<pre><code class="language-php">// Base exception for your domain.
+abstract class OrderException extends TranslatableDomainException
+{
+    protected string $defaultDomain = 'orders';
+}
+
+// Specific exceptions.
+class OrderNotFoundException extends OrderException {}
+class OrderValidationException extends OrderException {}
+class OrderStateException extends OrderException {}
+</code></pre>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

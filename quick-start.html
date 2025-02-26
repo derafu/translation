@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-quick-start-guide" href="quick-start.html#content-quick-start-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Quick Start Guide</h1>
+<p>Get started with Derafu Translation library in minutes.</p>
+<ul class="table-of-contents">
+<li><a href="quick-start.html#content-installation">Installation</a></li>
+<li><a href="quick-start.html#content-basic-setup">Basic Setup</a>
+<ul>
+<li><a href="quick-start.html#content-1-create-translation-files">1. Create Translation Files</a></li>
+<li><a href="quick-start.html#content-2-create-translator">2. Create Translator</a></li>
+<li><a href="quick-start.html#content-3-make-exceptions-translatable">3. Make Exceptions Translatable</a></li>
+</ul>
+</li>
+<li><a href="quick-start.html#content-first-translation">First Translation</a>
+<ul>
+<li><a href="quick-start.html#content-basic-usage">Basic Usage</a></li>
+<li><a href="quick-start.html#content-handling-exceptions">Handling Exceptions</a></li>
+</ul>
+</li>
+<li><a href="quick-start.html#content-common-use-cases">Common Use Cases</a>
+<ul>
+<li><a href="quick-start.html#content-form-validation">Form Validation</a></li>
+<li><a href="quick-start.html#content-api-responses">API Responses</a></li>
+<li><a href="quick-start.html#content-complex-messages">Complex Messages</a></li>
+</ul>
+</li>
+<li><a href="quick-start.html#content-next-steps">Next Steps</a></li>
+<li><a href="quick-start.html#content-common-pitfalls">Common Pitfalls</a></li>
+<li><a href="quick-start.html#content-tips--tricks">Tips &amp; Tricks</a></li>
+</ul>
+<h2><a id="content-installation" href="quick-start.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
+<p>Install via Composer:</p>
+<pre><code class="language-bash">composer require derafu/translation
+</code></pre>
+<p>Optional dependencies:</p>
+<pre><code class="language-bash"># If you want to use YAML files.
+composer require symfony/yaml
+
+# If you want to use Symfony's translator.
+composer require symfony/translation
+</code></pre>
+<h2><a id="content-basic-setup" href="quick-start.html#content-basic-setup" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Setup</h2>
+<h3><a id="content-1-create-translation-files" href="quick-start.html#content-1-create-translation-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. Create Translation Files</h3>
+<p>Choose your preferred format:</p>
+<pre><code class="language-php">// translations/messages/en.php
+return [
+    'welcome' =&gt; 'Welcome {name}!',
+    'errors' =&gt; [
+        'required' =&gt; 'The field {field} is required.',
+        'email' =&gt; 'Invalid email: {email}'
+    ]
+];
+</code></pre>
+<pre><code class="language-json">// translations/messages/en.json
+{
+    &quot;welcome&quot;: &quot;Welcome {name}!&quot;,
+    &quot;errors.required&quot;: &quot;The field {field} is required.&quot;,
+    &quot;errors.email&quot;: &quot;Invalid email: {email}&quot;
+}
+</code></pre>
+<pre><code class="language-yaml"># translations/messages/en.yaml
+welcome: 'Welcome {name}!'
+errors:
+  required: 'The field {field} is required.'
+  email: 'Invalid email: {email}'
+</code></pre>
+<h3><a id="content-2-create-translator" href="quick-start.html#content-2-create-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Create Translator</h3>
+<pre><code class="language-php">use Derafu\Translation\Translator;
+use Derafu\Translation\Provider\PhpMessageProvider;
+
+// Create message provider.
+$provider = new PhpMessageProvider(__DIR__ . '/translations');
+
+// Create translator.
+$translator = new Translator(
+    provider: $provider,
+    locale: 'en',
+    fallbackLocales: ['en']
+);
+</code></pre>
+<h3><a id="content-3-make-exceptions-translatable" href="quick-start.html#content-3-make-exceptions-translatable" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>3. Make Exceptions Translatable</h3>
+<pre><code class="language-php">use Derafu\Translation\Exception\Core\TranslatableException;
+
+class ValidationException extends TranslatableException
+{
+    // No additional code needed!
+}
+</code></pre>
+<h2><a id="content-first-translation" href="quick-start.html#content-first-translation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>First Translation</h2>
+<h3><a id="content-basic-usage" href="quick-start.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h3>
+<pre><code class="language-php">// 1. Simple string messages.
+throw new ValidationException('Email is required.');
+
+// 2. With translation key.
+throw new ValidationException('errors.required', ['field' =&gt; 'email']);
+
+// 3. With ICU formatting.
+throw new ValidationException(
+    'The value {value} must be between {min} and {max}.',
+    [
+        'value' =&gt; 42,
+        'min' =&gt; 1,
+        'max' =&gt; 10,
+    ]
+);
+</code></pre>
+<h3><a id="content-handling-exceptions" href="quick-start.html#content-handling-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Handling Exceptions</h3>
+<pre><code class="language-php">try {
+    // Your code.
+} catch (ValidationException $e) {
+    // Get default message.
+    echo $e-&gt;getMessage();
+
+    // Get translated message.
+    echo $e-&gt;trans($translator);
+
+    // Get message in specific locale.
+    echo $e-&gt;trans($translator, 'es');
+}
+</code></pre>
+<h2><a id="content-common-use-cases" href="quick-start.html#content-common-use-cases" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Use Cases</h2>
+<h3><a id="content-form-validation" href="quick-start.html#content-form-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Form Validation</h3>
+<pre><code class="language-php">class UserController
+{
+    public function create(Request $request): Response
+    {
+        $data = $request-&gt;toArray();
+
+        if (empty($data['email'])) {
+            throw new ValidationException([
+                'errors.required',
+                'field' =&gt; 'email',
+            ]);
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new ValidationException([
+                'errors.email',
+                'email' =&gt; $data['email'],
+            ]);
+        }
+
+        // Create user...
+    }
+}
+</code></pre>
+<h3><a id="content-api-responses" href="quick-start.html#content-api-responses" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Responses</h3>
+<pre><code class="language-php">class ErrorHandler
+{
+    public function handle(Throwable $e): JsonResponse
+    {
+        if ($e instanceof TranslatableException) {
+            return new JsonResponse([
+                'error' =&gt; [
+                    'message' =&gt; $e-&gt;trans($this-&gt;translator),
+                    'code' =&gt; $e-&gt;getCode(),
+                ]
+            ]);
+        }
+
+        // Handle other errors...
+    }
+}
+</code></pre>
+<h3><a id="content-complex-messages" href="quick-start.html#content-complex-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Complex Messages</h3>
+<pre><code class="language-php">// Pluralization.
+throw new ValidationException(
+    '{count, plural, =0{No files uploaded} one{1 file uploaded} other{# files uploaded}}',
+    ['count' =&gt; $fileCount]
+);
+
+// Gender.
+throw new ValidationException(
+    '{gender, select, female{She} male{He} other{They}} uploaded {count} files',
+    [
+        'gender' =&gt; $user-&gt;getGender(),
+        'count' =&gt; $fileCount
+    ]
+);
+</code></pre>
+<h2><a id="content-next-steps" href="quick-start.html#content-next-steps" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Next Steps</h2>
+<ol>
+<li>Read about <a href="icu-formatting.html">ICU Message Format</a> for powerful message formatting.</li>
+<li>Learn about <a href="custom-providers.html">Message Providers</a> for different storage options.</li>
+<li>Check <a href="real-world.html">Real World Examples</a> for common patterns.</li>
+<li>Explore <a href="advanced-usage.html">Advanced Usage</a> for complex scenarios.</li>
+</ol>
+<h2><a id="content-common-pitfalls" href="quick-start.html#content-common-pitfalls" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Pitfalls</h2>
+<ol>
+<li>
+<p>Always include ‘other’ case in plural/select patterns:</p>
+<pre><code class="language-php">// Wrong.
+'{gender, select, female{She} male{He}}'
+
+// Correct.
+'{gender, select, female{She} male{He} other{They}}'
+</code></pre>
+</li>
+<li>
+<p>Remember to provide all parameters:</p>
+<pre><code class="language-php">// Will fail.
+throw new ValidationException(
+    'The field {field} is required'
+    // Missing parameters!
+);
+
+// Correct.
+throw new ValidationException(
+    'The field {field} is required',
+    ['field' =&gt; 'email']
+);
+</code></pre>
+</li>
+<li>
+<p>Use consistent translation keys:</p>
+<pre><code class="language-php">// Recommended structure.
+validation.required
+validation.email.invalid
+validation.range.between
+</code></pre>
+</li>
+</ol>
+<h2><a id="content-tips--tricks" href="quick-start.html#content-tips--tricks" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Tips &amp; Tricks</h2>
+<ol>
+<li>
+<p>Use constants for translation keys:</p>
+<pre><code class="language-php">final class Messages
+{
+    public const REQUIRED = 'validation.required';
+    public const EMAIL_INVALID = 'validation.email.invalid';
+}
+</code></pre>
+</li>
+<li>
+<p>Create factory methods for common exceptions:</p>
+<pre><code class="language-php">class ValidationException extends TranslatableException
+{
+    public static function required(string $field): self
+    {
+        return new self([
+            Messages::REQUIRED,
+            'field' =&gt; $field,
+        ]);
+    }
+}
+</code></pre>
+</li>
+<li>
+<p>Use type hints for better IDE support:</p>
+<pre><code class="language-php">/**
+ * @throws ValidationException When email is invalid
+ */
+public function validateEmail(string $email): void
+{
+    // Validation code.
+}
+</code></pre>
+</li>
+</ol>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action active" href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-testing-guide" href="testing.html#content-testing-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Guide</h1>
+<p>This guide covers how to test applications using the Derafu Translation library, focusing on testing translatable exceptions and message handling.</p>
+<ul class="table-of-contents">
+<li><a href="testing.html#content-testing-exceptions">Testing Exceptions</a>
+<ul>
+<li><a href="testing.html#content-basic-exception-testing">Basic Exception Testing</a></li>
+<li><a href="testing.html#content-using-mock-translator">Using Mock Translator</a></li>
+</ul>
+</li>
+<li><a href="testing.html#content-testing-translations">Testing Translations</a>
+<ul>
+<li><a href="testing.html#content-testing-message-files">Testing Message Files</a></li>
+<li><a href="testing.html#content-testing-translation-consistency">Testing Translation Consistency</a></li>
+</ul>
+</li>
+<li><a href="testing.html#content-testing-custom-providers">Testing Custom Providers</a></li>
+<li><a href="testing.html#content-test-helpers">Test Helpers</a></li>
+<li><a href="testing.html#content-common-patterns">Common Patterns</a></li>
+</ul>
+<h2><a id="content-testing-exceptions" href="testing.html#content-testing-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Exceptions</h2>
+<h3><a id="content-basic-exception-testing" href="testing.html#content-basic-exception-testing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Exception Testing</h3>
+<pre><code class="language-php">use Derafu\Translation\TranslatableMessage;
+use PHPUnit\Framework\TestCase;
+
+class ValidationExceptionTest extends TestCase
+{
+    public function testBasicException(): void
+    {
+        $exception = new ValidationException('Email is invalid.');
+
+        // Without translation, should use original message.
+        $this-&gt;assertEquals('Email is invalid.', $exception-&gt;getMessage());
+    }
+
+    public function testExceptionWithParameters(): void
+    {
+        $exception = new ValidationException([
+            'validation.email',
+            'email' =&gt; 'test@example',
+        ]);
+
+        // Test ICU formatting without translator.
+        $this-&gt;assertEquals(
+            'Invalid email: test@example',
+            $exception-&gt;getMessage()
+        );
+    }
+
+    public function testWithTranslatableMessage(): void
+    {
+        $message = new TranslatableMessage(
+            'validation.required',
+            ['field' =&gt; 'email'],
+        );
+
+        $exception = new ValidationException($message);
+        $this-&gt;assertInstanceOf(
+            TranslatableMessage::class,
+            $exception-&gt;getTranslatableMessage()
+        );
+    }
+}
+</code></pre>
+<h3><a id="content-using-mock-translator" href="testing.html#content-using-mock-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using Mock Translator</h3>
+<pre><code class="language-php">class OrderExceptionTest extends TestCase
+{
+    private MockObject&amp;TranslatorInterface $translator;
+
+    protected function setUp(): void
+    {
+        $this-&gt;translator = $this-&gt;createMock(TranslatorInterface::class);
+    }
+
+    public function testOrderValidation(): void
+    {
+        $this-&gt;translator
+            -&gt;expects($this-&gt;once())
+            -&gt;method('trans')
+            -&gt;with(
+                'order.invalid_status',
+                ['status' =&gt; 'pending'],
+                'errors',
+                'en'
+            )
+            -&gt;willReturn('Invalid order status: pending');
+
+        $exception = new OrderException([
+            'order.invalid_status',
+            'status' =&gt; 'pending'
+        ]);
+
+        $this-&gt;assertEquals(
+            'Invalid order status: pending',
+            $exception-&gt;trans($this-&gt;translator, 'en')
+        );
+    }
+}
+</code></pre>
+<h2><a id="content-testing-translations" href="testing.html#content-testing-translations" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Translations</h2>
+<h3><a id="content-testing-message-files" href="testing.html#content-testing-message-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Message Files</h3>
+<pre><code class="language-php">class TranslationFilesTest extends TestCase
+{
+    private string $fixturesDir;
+
+    protected function setUp(): void
+    {
+        $this-&gt;fixturesDir = __DIR__ . '/../fixtures/translations';
+    }
+
+    #[DataProvider('dataProvider')]
+    public function testMessageFiles(string $file): void
+    {
+        $this-&gt;assertFileExists($file);
+
+        // Test file format.
+        $messages = require $file;
+        $this-&gt;assertIsArray($messages);
+
+        // Test message format.
+        foreach ($messages as $key =&gt; $value) {
+            $this-&gt;assertIsString($key);
+            $this-&gt;assertIsString($value);
+
+            // Test ICU format.
+            $formatter = new MessageFormatter('en', $value);
+            $this-&gt;assertNotFalse(
+                $formatter,
+                &quot;Invalid ICU format in message: $value&quot;
+            );
+        }
+    }
+
+    public function provideMessageFiles(): array
+    {
+        return [
+            'en messages' =&gt; [$this-&gt;fixturesDir . '/messages/en.php'],
+            'es messages' =&gt; [$this-&gt;fixturesDir . '/messages/es.php'],
+            'en errors' =&gt; [$this-&gt;fixturesDir . '/errors/en.php'],
+            'es errors' =&gt; [$this-&gt;fixturesDir . '/errors/es.php'],
+        ];
+    }
+}
+</code></pre>
+<h3><a id="content-testing-translation-consistency" href="testing.html#content-testing-translation-consistency" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Translation Consistency</h3>
+<pre><code class="language-php">class TranslationConsistencyTest extends TestCase
+{
+    private array $locales = ['en', 'es'];
+
+    private array $domains = ['messages', 'errors'];
+
+    private MessageProviderInterface $provider;
+
+    protected function setUp(): void
+    {
+        $this-&gt;provider = new PhpMessageProvider(
+            __DIR__ . '/../fixtures/translations'
+        );
+    }
+
+    public function testAllLocalesHaveSameKeys(): void
+    {
+        foreach ($this-&gt;domains as $domain) {
+            $baseMessages = $this-&gt;provider-&gt;getMessages('en', $domain);
+            $baseKeys = array_keys($baseMessages);
+
+            foreach ($this-&gt;locales as $locale) {
+                if ($locale === 'en') {
+                    continue;
+                }
+
+                $messages = $this-&gt;provider-&gt;getMessages($locale, $domain);
+                $keys = array_keys($messages);
+
+                $this-&gt;assertEquals(
+                    sort($baseKeys),
+                    sort($keys),
+                    &quot;Missing translations in $locale for domain $domain&quot;
+                );
+            }
+        }
+    }
+
+    public function testIcuParametersConsistency(): void
+    {
+        foreach ($this-&gt;domains as $domain) {
+            $baseMessages = $this-&gt;provider-&gt;getMessages('en', $domain);
+
+            foreach ($this-&gt;locales as $locale) {
+                if ($locale === 'en') {
+                    continue;
+                }
+
+                $messages = $this-&gt;provider-&gt;getMessages($locale, $domain);
+
+                foreach ($baseMessages as $key =&gt; $baseMessage) {
+                    $message = $messages[$key];
+
+                    // Extract parameters from ICU messages.
+                    preg_match_all('/{(\w+)}/', $baseMessage, $baseParams);
+                    preg_match_all('/{(\w+)}/', $message, $params);
+
+                    $this-&gt;assertEquals(
+                        sort($baseParams[1]),
+                        sort($params[1]),
+                        &quot;Parameters mismatch in key '$key' for locale $locale&quot;
+                    );
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<h2><a id="content-testing-custom-providers" href="testing.html#content-testing-custom-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Testing Custom Providers</h2>
+<pre><code class="language-php">class CustomProviderTest extends TestCase
+{
+    public function testProvider(): void
+    {
+        $provider = new CustomProvider();
+
+        // Test basic functionality.
+        $messages = $provider-&gt;getMessages('en');
+        $this-&gt;assertIsArray($messages);
+
+        // Test locales.
+        $locales = $provider-&gt;getAvailableLocales();
+        $this-&gt;assertNotEmpty($locales);
+
+        // Test domains.
+        $errors = $provider-&gt;getMessages('en', 'errors');
+        $this-&gt;assertIsArray($errors);
+    }
+
+    public function testErrorHandling(): void
+    {
+        $provider = new CustomProvider();
+
+        $this-&gt;expectException(RuntimeException::class);
+        $provider-&gt;getMessages('invalid-locale');
+    }
+}
+</code></pre>
+<h2><a id="content-test-helpers" href="testing.html#content-test-helpers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Test Helpers</h2>
+<pre><code class="language-php">trait TranslationTestTrait
+{
+    private function createTestTranslator(): TranslatorInterface
+    {
+        return new class implements TranslatorInterface {
+            public function trans(
+                ?string $id,
+                array $parameters = [],
+                string $domain = null,
+                string $locale = null
+            ): string {
+                return strtr($id, $parameters);
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+        };
+    }
+
+    private function assertTranslationEquals(
+        string $expected,
+        TranslatableException $exception,
+        string $message = ''
+    ): void {
+        $translator = $this-&gt;createTestTranslator();
+        $this-&gt;assertEquals(
+            $expected,
+            $exception-&gt;trans($translator),
+            $message
+        );
+    }
+}
+</code></pre>
+<h2><a id="content-common-patterns" href="testing.html#content-common-patterns" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Patterns</h2>
+<ol>
+<li>
+<p><strong>Test Exception Factory Methods</strong></p>
+<pre><code class="language-php">public function testExceptionFactory(): void
+{
+    $exception = ValidationExceptionFactory::required('email');
+
+    $this-&gt;assertInstanceOf(ValidationException::class, $exception);
+    $this-&gt;assertEquals(
+        'The field email is required.',
+        $exception-&gt;getMessage()
+    );
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Test Translation Fallbacks</strong></p>
+<pre><code class="language-php">public function testFallbackTranslation(): void
+{
+    $translator = new Translator(
+        $this-&gt;provider,
+        'fr',
+        ['es', 'en']
+    );
+
+    $exception = new ValidationException('test.message');
+
+    // Should fallback to English.
+    $this-&gt;assertEquals(
+        'Test message',
+        $exception-&gt;trans($translator)
+    );
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Test ICU Edge Cases</strong></p>
+<pre><code class="language-php">public function testComplexIcuPattern(): void
+{
+    $exception = new ValidationException(
+        '{count, plural, =0{Empty} one{# item} other{# items}}',
+        ['count' =&gt; 0]
+    );
+
+    $this-&gt;assertEquals('Empty', $exception-&gt;getMessage());
+}
+</code></pre>
+</li>
+</ol>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Always test both translated and untranslated scenarios.</li>
+<li>Test parameter substitution.</li>
+<li>Verify ICU message formatting.</li>
+<li>Check translation consistency across locales.</li>
+<li>Test error handling.</li>
+<li>Use data providers for multiple test cases.</li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

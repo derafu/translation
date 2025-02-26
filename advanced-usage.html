@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-advanced-usage-guide" href="advanced-usage.html#content-advanced-usage-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Advanced Usage Guide</h1>
+<p>This guide covers advanced patterns and usage scenarios for the Derafu Translation library.</p>
+<ul class="table-of-contents">
+<li><a href="advanced-usage.html#content-message-composition">Message Composition</a>
+<ul>
+<li><a href="advanced-usage.html#content-base-messages">Base Messages</a></li>
+<li><a href="advanced-usage.html#content-composite-messages">Composite Messages</a></li>
+</ul>
+</li>
+<li><a href="advanced-usage.html#content-dynamic-translation-loading">Dynamic Translation Loading</a>
+<ul>
+<li><a href="advanced-usage.html#content-translation-strategy">Translation Strategy</a></li>
+</ul>
+</li>
+<li><a href="advanced-usage.html#content-exception-hierarchies">Exception Hierarchies</a>
+<ul>
+<li><a href="advanced-usage.html#content-base-domain-exception">Base Domain Exception</a></li>
+<li><a href="advanced-usage.html#content-specific-exceptions">Specific Exceptions</a></li>
+</ul>
+</li>
+<li><a href="advanced-usage.html#content-context-aware-translation">Context-Aware Translation</a>
+<ul>
+<li><a href="advanced-usage.html#content-translation-context">Translation Context</a></li>
+</ul>
+</li>
+<li><a href="advanced-usage.html#content-translation-decorators">Translation Decorators</a>
+<ul>
+<li><a href="advanced-usage.html#content-logging-decorator">Logging Decorator</a></li>
+<li><a href="advanced-usage.html#content-fallback-chain-decorator">Fallback Chain Decorator</a></li>
+<li><a href="advanced-usage.html#content-caching-decorator">Caching Decorator</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-message-composition" href="advanced-usage.html#content-message-composition" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Message Composition</h2>
+<h3><a id="content-base-messages" href="advanced-usage.html#content-base-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Base Messages</h3>
+<pre><code class="language-php">class MessageTemplates
+{
+    public const REQUIRED = 'validation.required';
+    public const INVALID = 'validation.invalid';
+    public const FORMAT = 'validation.format';
+
+    public static function required(string $field): TranslatableInterface
+    {
+        return new TranslatableMessage(self::REQUIRED, ['field' =&gt; $field]);
+    }
+
+    public static function invalid(string $field, mixed $value): TranslatableInterface
+    {
+        return new TranslatableMessage(self::INVALID, [
+            'field' =&gt; $field,
+            'value' =&gt; (string) $value
+        ]);
+    }
+
+    public static function format(string $field, string $format): TranslatableInterface
+    {
+        return new TranslatableMessage(self::FORMAT, [
+            'field' =&gt; $field,
+            'format' =&gt; $format
+        ]);
+    }
+}
+</code></pre>
+<h3><a id="content-composite-messages" href="advanced-usage.html#content-composite-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Composite Messages</h3>
+<pre><code class="language-php">class CompositeMessage implements TranslatableInterface
+{
+    /** @var TranslatableInterface[] */
+    private array $messages;
+
+    /**
+     * @param TranslatableInterface[] $messages
+     */
+    public function __construct(array $messages)
+    {
+        $this-&gt;messages = $messages;
+    }
+
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return implode(' ', array_map(
+            fn(TranslatableInterface $message) =&gt; $message-&gt;trans($translator, $locale),
+            $this-&gt;messages
+        ));
+    }
+
+    public function __toString(): string
+    {
+        return implode(' ', array_map(
+            fn(TranslatableInterface $message) =&gt; (string) $message,
+            $this-&gt;messages
+        ));
+    }
+}
+
+// Usage
+throw new ValidationException(new CompositeMessage([
+    MessageTemplates::required('email'),
+    MessageTemplates::format('email', 'user@example.com')
+]));
+</code></pre>
+<h2><a id="content-dynamic-translation-loading" href="advanced-usage.html#content-dynamic-translation-loading" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Dynamic Translation Loading</h2>
+<h3><a id="content-translation-strategy" href="advanced-usage.html#content-translation-strategy" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Strategy</h3>
+<pre><code class="language-php">interface TranslationStrategy
+{
+    public function getMessages(string $locale): array;
+    public function supports(string $domain): bool;
+}
+
+class ApiTranslationStrategy implements TranslationStrategy
+{
+    public function __construct(
+        private readonly HttpClientInterface $client,
+        private readonly string $apiUrl
+    ) {
+    }
+
+    public function getMessages(string $locale): array
+    {
+        $response = $this-&gt;client-&gt;request('GET', sprintf(
+            '%s/translations/%s',
+            $this-&gt;apiUrl,
+            $locale
+        ));
+
+        return json_decode($response-&gt;getBody()-&gt;getContents(), true);
+    }
+
+    public function supports(string $domain): bool
+    {
+        return $domain === 'remote';
+    }
+}
+
+class DynamicProvider implements MessageProviderInterface
+{
+    /** @var TranslationStrategy[] */
+    private array $strategies = [];
+
+    public function addStrategy(TranslationStrategy $strategy): void
+    {
+        $this-&gt;strategies[] = $strategy;
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        foreach ($this-&gt;strategies as $strategy) {
+            if ($strategy-&gt;supports($domain)) {
+                return $strategy-&gt;getMessages($locale);
+            }
+        }
+        return [];
+    }
+}
+</code></pre>
+<h2><a id="content-exception-hierarchies" href="advanced-usage.html#content-exception-hierarchies" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Exception Hierarchies</h2>
+<h3><a id="content-base-domain-exception" href="advanced-usage.html#content-base-domain-exception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Base Domain Exception</h3>
+<pre><code class="language-php">abstract class DomainException extends TranslatableException
+{
+    protected function getDefaultDomain(): string
+    {
+        return 'domain';
+    }
+
+    protected function getMessageContext(): array
+    {
+        return [
+            'timestamp' =&gt; date('Y-m-d H:i:s'),
+            'trace_id' =&gt; $this-&gt;getTraceId()
+        ];
+    }
+
+    private function getTraceId(): string
+    {
+        return bin2hex(random_bytes(16));
+    }
+}
+</code></pre>
+<h3><a id="content-specific-exceptions" href="advanced-usage.html#content-specific-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Specific Exceptions</h3>
+<pre><code class="language-php">class OrderException extends DomainException
+{
+    protected function getDefaultDomain(): string
+    {
+        return 'orders';
+    }
+
+    public static function insufficientStock(
+        Product $product,
+        int $requested,
+        int $available
+    ): self {
+        return new self([
+            'order.insufficient_stock',
+            'product' =&gt; $product-&gt;getName(),
+            'requested' =&gt; $requested,
+            'available' =&gt; $available
+        ]);
+    }
+}
+
+class PaymentException extends DomainException
+{
+    protected function getDefaultDomain(): string
+    {
+        return 'payments';
+    }
+
+    public static function insufficientFunds(
+        Money $amount,
+        Money $balance
+    ): self {
+        return new self([
+            'payment.insufficient_funds',
+            'amount' =&gt; $amount-&gt;format(),
+            'balance' =&gt; $balance-&gt;format(),
+            'currency' =&gt; $amount-&gt;getCurrency()
+        ]);
+    }
+}
+</code></pre>
+<h2><a id="content-context-aware-translation" href="advanced-usage.html#content-context-aware-translation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Context-Aware Translation</h2>
+<h3><a id="content-translation-context" href="advanced-usage.html#content-translation-context" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Context</h3>
+<pre><code class="language-php">class TranslationContext
+{
+    public function __construct(
+        private readonly array $data = []
+    ) {
+    }
+
+    public function get(string $key, mixed $default = null): mixed
+    {
+        return $this-&gt;data[$key] ?? $default;
+    }
+
+    public function merge(array $data): self
+    {
+        return new self(array_merge($this-&gt;data, $data));
+    }
+}
+
+class ContextAwareTranslator implements TranslatorInterface
+{
+    private ?TranslationContext $context = null;
+
+    public function __construct(
+        private readonly TranslatorInterface $translator
+    ) {
+    }
+
+    public function withContext(TranslationContext $context): self
+    {
+        $clone = clone $this;
+        $clone-&gt;context = $context;
+        return $clone;
+    }
+
+    public function trans(
+        ?string $id,
+        array $parameters = [],
+        ?string $domain = null,
+        ?string $locale = null
+    ): string {
+        if ($this-&gt;context) {
+            $parameters = array_merge(
+                $parameters,
+                $this-&gt;context-&gt;toArray()
+            );
+        }
+
+        return $this-&gt;translator-&gt;trans($id, $parameters, $domain, $locale);
+    }
+}
+</code></pre>
+<h2><a id="content-translation-decorators" href="advanced-usage.html#content-translation-decorators" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Decorators</h2>
+<h3><a id="content-logging-decorator" href="advanced-usage.html#content-logging-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Logging Decorator</h3>
+<pre><code class="language-php">class LoggingTranslator implements TranslatorInterface
+{
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+        private readonly LoggerInterface $logger
+    ) {
+    }
+
+    public function trans(
+        ?string $id,
+        array $parameters = [],
+        ?string $domain = null,
+        ?string $locale = null
+    ): string {
+        $result = $this-&gt;translator-&gt;trans($id, $parameters, $domain, $locale);
+
+        $this-&gt;logger-&gt;debug('Translation performed', [
+            'id' =&gt; $id,
+            'parameters' =&gt; $parameters,
+            'domain' =&gt; $domain,
+            'locale' =&gt; $locale,
+            'result' =&gt; $result
+        ]);
+
+        return $result;
+    }
+}
+</code></pre>
+<h3><a id="content-fallback-chain-decorator" href="advanced-usage.html#content-fallback-chain-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Fallback Chain Decorator</h3>
+<pre><code class="language-php">class FallbackChainTranslator implements TranslatorInterface
+{
+    /** @var TranslatorInterface[] */
+    private array $translators;
+
+    public function __construct(TranslatorInterface ...$translators)
+    {
+        $this-&gt;translators = $translators;
+    }
+
+    public function trans(
+        ?string $id,
+        array $parameters = [],
+        ?string $domain = null,
+        ?string $locale = null
+    ): string {
+        $lastException = null;
+
+        foreach ($this-&gt;translators as $translator) {
+            try {
+                return $translator-&gt;trans($id, $parameters, $domain, $locale);
+            } catch (Exception $e) {
+                $lastException = $e;
+                continue;
+            }
+        }
+
+        throw new RuntimeException(
+            'No translator could handle the translation',
+            0,
+            $lastException
+        );
+    }
+}
+</code></pre>
+<h3><a id="content-caching-decorator" href="advanced-usage.html#content-caching-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Caching Decorator</h3>
+<pre><code class="language-php">class CachingTranslator implements TranslatorInterface
+{
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+        private readonly CacheInterface $cache,
+        private readonly int $ttl = 3600
+    ) {
+    }
+
+    public function trans(
+        ?string $id,
+        array $parameters = [],
+        ?string $domain = null,
+        ?string $locale = null
+    ): string {
+        $key = $this-&gt;getCacheKey($id, $parameters, $domain, $locale);
+
+        return $this-&gt;cache-&gt;get($key, function() use ($id, $parameters, $domain, $locale) {
+            return $this-&gt;translator-&gt;trans($id, $parameters, $domain, $locale);
+        }, $this-&gt;ttl);
+    }
+
+    private function getCacheKey(
+        string $id,
+        array $parameters,
+        ?string $domain,
+        ?string $locale
+    ): string {
+        return md5(serialize([
+            'id' =&gt; $id,
+            'parameters' =&gt; $parameters,
+            'domain' =&gt; $domain,
+            'locale' =&gt; $locale
+        ]));
+    }
+}
+</code></pre>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Use composition to extend functionality.</li>
+<li>Keep single responsibility principle.</li>
+<li>Make exceptions domain-specific.</li>
+<li>Consider performance implications.</li>
+<li>Add proper logging and monitoring.</li>
+<li>Handle edge cases gracefully.</li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>

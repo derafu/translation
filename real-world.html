@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-10">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-real-world-examples" href="real-world.html#content-real-world-examples" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Real World Examples</h1>
+<p>This guide provides practical examples of using the Derafu Translation library in real-world scenarios.</p>
+<ul class="table-of-contents">
+<li><a href="real-world.html#content-rest-api-error-handling">REST API Error Handling</a>
+<ul>
+<li><a href="real-world.html#content-error-response-structure">Error Response Structure</a></li>
+<li><a href="real-world.html#content-api-error-handler">API Error Handler</a></li>
+<li><a href="real-world.html#content-usage-in-controllers">Usage in Controllers</a></li>
+</ul>
+</li>
+<li><a href="real-world.html#content-form-validation">Form Validation</a>
+<ul>
+<li><a href="real-world.html#content-form-type">Form Type</a></li>
+<li><a href="real-world.html#content-form-handler">Form Handler</a></li>
+</ul>
+</li>
+<li><a href="real-world.html#content-domain-specific-validation">Domain-Specific Validation</a>
+<ul>
+<li><a href="real-world.html#content-order-processing">Order Processing</a></li>
+<li><a href="real-world.html#content-financial-validation">Financial Validation</a></li>
+</ul>
+</li>
+<li><a href="real-world.html#content-complex-business-rules">Complex Business Rules</a>
+<ul>
+<li><a href="real-world.html#content-document-workflow">Document Workflow</a></li>
+</ul>
+</li>
+<li><a href="real-world.html#content-multiple-translation-sources">Multiple Translation Sources</a>
+<ul>
+<li><a href="real-world.html#content-combining-providers">Combining Providers</a></li>
+<li><a href="real-world.html#content-cache-layer">Cache Layer</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-rest-api-error-handling" href="real-world.html#content-rest-api-error-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>REST API Error Handling</h2>
+<h3><a id="content-error-response-structure" href="real-world.html#content-error-response-structure" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Error Response Structure</h3>
+<pre><code class="language-php">class ApiException extends TranslatableException
+{
+    public function toArray(): array
+    {
+        return [
+            'error' =&gt; [
+                'message' =&gt; $this-&gt;getMessage(),
+                'code' =&gt; $this-&gt;getCode(),
+                'type' =&gt; $this-&gt;getType(),
+            ],
+        ];
+    }
+
+    protected function getType(): string
+    {
+        return (new ReflectionClass($this))-&gt;getShortName();
+    }
+}
+
+class ValidationApiException extends ApiException
+{
+    private array $errors;
+
+    public function __construct(array $errors, int $code = 422)
+    {
+        $this-&gt;errors = $errors;
+        parent::__construct('validation.failed', $code);
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'error' =&gt; [
+                'message' =&gt; $this-&gt;getMessage(),
+                'code' =&gt; $this-&gt;getCode(),
+                'type' =&gt; $this-&gt;getType(),
+                'errors' =&gt; $this-&gt;errors,
+            ],
+        ];
+    }
+}
+</code></pre>
+<h3><a id="content-api-error-handler" href="real-world.html#content-api-error-handler" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Error Handler</h3>
+<pre><code class="language-php">class ApiErrorHandler
+{
+    public function __construct(
+        private readonly TranslatorInterface $translator
+    ) {
+    }
+
+    public function handle(Throwable $error): JsonResponse
+    {
+        if ($error instanceof ApiException) {
+            $data = $error-&gt;toArray();
+            if ($error instanceof TranslatableException) {
+                $data['error']['message'] = $error-&gt;trans(
+                    $this-&gt;translator,
+                    $this-&gt;getLocaleFromRequest()
+                );
+            }
+            return new JsonResponse($data, $error-&gt;getCode());
+        }
+
+        // Handle other errors...
+    }
+}
+</code></pre>
+<h3><a id="content-usage-in-controllers" href="real-world.html#content-usage-in-controllers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Usage in Controllers</h3>
+<pre><code class="language-php">class UserController
+{
+    public function create(Request $request): JsonResponse
+    {
+        $data = $request-&gt;toArray();
+
+        if (empty($data['email'])) {
+            throw new ValidationApiException([
+                'email' =&gt; new TranslatableMessage(
+                    'validation.required',
+                    ['field' =&gt; 'email']
+                ),
+            ]);
+        }
+
+        try {
+            // Create user...
+        } catch (DuplicateEmailException $e) {
+            throw new ValidationApiException([
+                'email' =&gt; new TranslatableMessage(
+                    'validation.email.duplicate',
+                    ['email' =&gt; $data['email']]
+                ),
+            ]);
+        }
+    }
+}
+</code></pre>
+<h2><a id="content-form-validation" href="real-world.html#content-form-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Form Validation</h2>
+<h3><a id="content-form-type" href="real-world.html#content-form-type" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Form Type</h3>
+<pre><code class="language-php">class RegistrationFormType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            -&gt;add('email', EmailType::class, [
+                'constraints' =&gt; [
+                    new NotBlank([
+                        'message' =&gt; new TranslatableMessage(
+                            'validation.required',
+                            ['field' =&gt; 'email']
+                        ),
+                    ]),
+                    new Email([
+                        'message' =&gt; new TranslatableMessage(
+                            'validation.email.invalid',
+                            ['email' =&gt; '{{ value }}']
+                        ),
+                    ])
+                ]
+            ])
+            -&gt;add('password', PasswordType::class, [
+                'constraints' =&gt; [
+                    new Length([
+                        'min' =&gt; 8,
+                        'minMessage' =&gt; new TranslatableMessage(
+                            'validation.password.min_length',
+                            ['min' =&gt; 8]
+                        ),
+                    ])
+                ]
+            ]);
+    }
+}
+</code></pre>
+<h3><a id="content-form-handler" href="real-world.html#content-form-handler" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Form Handler</h3>
+<pre><code class="language-php">class RegistrationFormHandler
+{
+    public function handle(FormInterface $form): User
+    {
+        if (!$form-&gt;isSubmitted()) {
+            throw new FormException('form.not_submitted');
+        }
+
+        if (!$form-&gt;isValid()) {
+            $errors = [];
+            foreach ($form-&gt;getErrors(true) as $error) {
+                $errors[$error-&gt;getOrigin()-&gt;getName()] = $error-&gt;getMessage();
+            }
+            throw new ValidationApiException($errors);
+        }
+
+        return $this-&gt;createUser($form-&gt;getData());
+    }
+}
+</code></pre>
+<h2><a id="content-domain-specific-validation" href="real-world.html#content-domain-specific-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Domain-Specific Validation</h2>
+<h3><a id="content-order-processing" href="real-world.html#content-order-processing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Order Processing</h3>
+<pre><code class="language-php">class OrderProcessor
+{
+    public function process(Order $order): void
+    {
+        // Check stock.
+        if (!$this-&gt;hasStock($order)) {
+            throw new OrderException([
+                'order.insufficient_stock',
+                'product' =&gt; $order-&gt;getProduct()-&gt;getName(),
+                'requested' =&gt; $order-&gt;getQuantity(),
+                'available' =&gt; $this-&gt;getAvailableStock($order-&gt;getProduct()),
+            ]);
+        }
+
+        // Check status transitions.
+        if (!$this-&gt;canTransition($order, $status)) {
+            throw new OrderException([
+                'order.invalid_transition',
+                'from' =&gt; $order-&gt;getStatus(),
+                'to' =&gt; $status,
+                'allowed' =&gt; implode(', ', $this-&gt;getAllowedTransitions($order)),
+            ]);
+        }
+    }
+}
+</code></pre>
+<h3><a id="content-financial-validation" href="real-world.html#content-financial-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Financial Validation</h3>
+<pre><code class="language-php">class PaymentValidator
+{
+    public function validate(Payment $payment): void
+    {
+        // Balance check.
+        if ($payment-&gt;getAmount() &gt; $this-&gt;getBalance()) {
+            throw new PaymentException([
+                'payment.insufficient_funds',
+                'amount' =&gt; $payment-&gt;getAmount(),
+                'balance' =&gt; $this-&gt;getBalance(),
+                'currency' =&gt; $payment-&gt;getCurrency(),
+            ]);
+        }
+
+        // Limit check.
+        if ($payment-&gt;getAmount() &gt; $this-&gt;getDailyLimit()) {
+            throw new PaymentException([
+                'payment.limit_exceeded',
+                'amount' =&gt; $payment-&gt;getAmount(),
+                'limit' =&gt; $this-&gt;getDailyLimit(),
+                'period' =&gt; 'daily',
+            ]);
+        }
+    }
+}
+</code></pre>
+<h2><a id="content-complex-business-rules" href="real-world.html#content-complex-business-rules" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Complex Business Rules</h2>
+<h3><a id="content-document-workflow" href="real-world.html#content-document-workflow" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Document Workflow</h3>
+<pre><code class="language-php">class DocumentWorkflow
+{
+    public function validate(Document $document): void
+    {
+        // Check permissions.
+        if (!$this-&gt;canUserAccess($document)) {
+            throw new DocumentException([
+                'document.access_denied',
+                'document' =&gt; $document-&gt;getTitle(),
+                'user' =&gt; $this-&gt;getCurrentUser()-&gt;getName(),
+                'required_role' =&gt; $document-&gt;getRequiredRole(),
+            ]);
+        }
+
+        // Check workflow state.
+        if (!$this-&gt;canTransition($document, $action)) {
+            throw new DocumentException([
+                'document.invalid_workflow_transition',
+                'document' =&gt; $document-&gt;getTitle(),
+                'current' =&gt; $document-&gt;getState(),
+                'action' =&gt; $action,
+                'required_approvals' =&gt; $document-&gt;getRequiredApprovals(),
+                'current_approvals' =&gt; $document-&gt;getCurrentApprovals(),
+            ]);
+        }
+    }
+}
+</code></pre>
+<h2><a id="content-multiple-translation-sources" href="real-world.html#content-multiple-translation-sources" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Multiple Translation Sources</h2>
+<h3><a id="content-combining-providers" href="real-world.html#content-combining-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Combining Providers</h3>
+<pre><code class="language-php">class CompositeProvider implements MessageProviderInterface
+{
+    /** @var MessageProviderInterface[] */
+    private array $providers;
+
+    public function __construct(array $providers)
+    {
+        $this-&gt;providers = $providers;
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $messages = [];
+        foreach ($this-&gt;providers as $provider) {
+            $messages = array_merge(
+                $messages,
+                $provider-&gt;getMessages($locale, $domain)
+            );
+        }
+        return $messages;
+    }
+}
+
+// Usage.
+$provider = new CompositeProvider([
+    new PhpMessageProvider(__DIR__ . '/translations'),
+    new DatabaseMessageProvider($db),
+    new RedisMessageProvider($redis),
+]);
+</code></pre>
+<h3><a id="content-cache-layer" href="real-world.html#content-cache-layer" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Cache Layer</h3>
+<pre><code class="language-php">class CachedProvider implements MessageProviderInterface
+{
+    public function __construct(
+        private readonly MessageProviderInterface $provider,
+        private readonly CacheInterface $cache,
+        private readonly int $ttl = 3600
+    ) {
+    }
+
+    public function getMessages(string $locale, string $domain = 'messages'): array
+    {
+        $key = &quot;translations:{$domain}:{$locale}&quot;;
+
+        return $this-&gt;cache-&gt;get($key, function() use ($locale, $domain) {
+            return $this-&gt;provider-&gt;getMessages($locale, $domain);
+        }, $this-&gt;ttl);
+    }
+}
+</code></pre>
+<hr />
+<p>Remember:</p>
+<ul>
+<li>Keep error messages user-friendly but informative.</li>
+<li>Include relevant context in error messages.</li>
+<li>Use consistent message structure.</li>
+<li>Consider performance with caching.</li>
+<li>Handle nested validations properly.</li>
+<li>Plan for internationalization from the start.</li>
+</ul>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/translation</span>
+                            </div>
+                        </li>
+                        <a class="list-group-item list-group-item-action " href="index.html">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Docs</div>
+                              <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+
+                        <a class="list-group-item list-group-item-action " href="quick-start.html">
+                            Quick Start Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="api-reference.html">
+                            API Reference
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="exceptions.html">
+                            Working with Translatable Exceptions
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="icu-formatting.html">
+                            ICU Message Formatting Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="custom-providers.html">
+                            Creating Custom Message Providers
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="advanced-usage.html">
+                            Advanced Usage Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action active" href="real-world.html">
+                            Real World Examples
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="symfony-integration.html">
+                            Symfony Integration Guide
+                        </a>
+                        <a class="list-group-item list-group-item-action " href="testing.html">
+                            Testing Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>
