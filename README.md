@@ -1,7 +1,11 @@
 # Derafu: Translation - Translation Library with Exception Support
 
-[![CI Workflow](https://github.com/derafu/translation/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/derafu/translation/actions/workflows/ci.yml?query=branch%3Amain)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![GitHub last commit](https://img.shields.io/github/last-commit/derafu/translation/main)
+![CI Workflow](https://github.com/derafu/translation/actions/workflows/ci.yml/badge.svg?branch=main&event=push)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/derafu/translation)
+![GitHub Issues](https://img.shields.io/github/issues-raw/derafu/translation)
+![Total Downloads](https://poser.pugx.org/derafu/translation/downloads)
+![Monthly Downloads](https://poser.pugx.org/derafu/translation/d/monthly)
 
 A PHP library that solves one specific problem: **making exceptions translatable without compromising your existing code**, while providing powerful ICU message formatting support.
 
