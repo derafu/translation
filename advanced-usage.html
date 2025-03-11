@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Derafu: Translation - Translation Library with Exception Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
-    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/css/styles.min.css" rel="stylesheet" />
     </head>
-<body class="derafu-theme-earthstone">
+<body>
                 <div id="header-container" class="sticky-top"></div>
     
             <div class="container">
             <div class="row">
-                <main class="col-md-10">
+                <main class="col-md-9">
                     <div class="container py-4">
     <div class="markdown-body"><h1><a id="content-advanced-usage-guide" href="advanced-usage.html#content-advanced-usage-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Advanced Usage Guide</h1>
 <p>This guide covers advanced patterns and usage scenarios for the Derafu Translation library.</p>
@@ -52,7 +55,7 @@
 </ul>
 <h2><a id="content-message-composition" href="advanced-usage.html#content-message-composition" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Message Composition</h2>
 <h3><a id="content-base-messages" href="advanced-usage.html#content-base-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Base Messages</h3>
-<pre><code class="language-php">class MessageTemplates
+<pre><code class="line-numbers match-braces language-php">class MessageTemplates
 {
     public const REQUIRED = 'validation.required';
     public const INVALID = 'validation.invalid';
@@ -81,7 +84,7 @@
 }
 </code></pre>
 <h3><a id="content-composite-messages" href="advanced-usage.html#content-composite-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Composite Messages</h3>
-<pre><code class="language-php">class CompositeMessage implements TranslatableInterface
+<pre><code class="line-numbers match-braces language-php">class CompositeMessage implements TranslatableInterface
 {
     /** @var TranslatableInterface[] */
     private array $messages;
@@ -119,7 +122,7 @@ throw new ValidationException(new CompositeMessage([
 </code></pre>
 <h2><a id="content-dynamic-translation-loading" href="advanced-usage.html#content-dynamic-translation-loading" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Dynamic Translation Loading</h2>
 <h3><a id="content-translation-strategy" href="advanced-usage.html#content-translation-strategy" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Strategy</h3>
-<pre><code class="language-php">interface TranslationStrategy
+<pre><code class="line-numbers match-braces language-php">interface TranslationStrategy
 {
     public function getMessages(string $locale): array;
     public function supports(string $domain): bool;
@@ -173,7 +176,7 @@ class DynamicProvider implements MessageProviderInterface
 </code></pre>
 <h2><a id="content-exception-hierarchies" href="advanced-usage.html#content-exception-hierarchies" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Exception Hierarchies</h2>
 <h3><a id="content-base-domain-exception" href="advanced-usage.html#content-base-domain-exception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Base Domain Exception</h3>
-<pre><code class="language-php">abstract class DomainException extends TranslatableException
+<pre><code class="line-numbers match-braces language-php">abstract class DomainException extends TranslatableException
 {
     protected function getDefaultDomain(): string
     {
@@ -195,7 +198,7 @@ class DynamicProvider implements MessageProviderInterface
 }
 </code></pre>
 <h3><a id="content-specific-exceptions" href="advanced-usage.html#content-specific-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Specific Exceptions</h3>
-<pre><code class="language-php">class OrderException extends DomainException
+<pre><code class="line-numbers match-braces language-php">class OrderException extends DomainException
 {
     protected function getDefaultDomain(): string
     {
@@ -238,7 +241,7 @@ class PaymentException extends DomainException
 </code></pre>
 <h2><a id="content-context-aware-translation" href="advanced-usage.html#content-context-aware-translation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Context-Aware Translation</h2>
 <h3><a id="content-translation-context" href="advanced-usage.html#content-translation-context" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Context</h3>
-<pre><code class="language-php">class TranslationContext
+<pre><code class="line-numbers match-braces language-php">class TranslationContext
 {
     public function __construct(
         private readonly array $data = []
@@ -291,7 +294,7 @@ class ContextAwareTranslator implements TranslatorInterface
 </code></pre>
 <h2><a id="content-translation-decorators" href="advanced-usage.html#content-translation-decorators" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Decorators</h2>
 <h3><a id="content-logging-decorator" href="advanced-usage.html#content-logging-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Logging Decorator</h3>
-<pre><code class="language-php">class LoggingTranslator implements TranslatorInterface
+<pre><code class="line-numbers match-braces language-php">class LoggingTranslator implements TranslatorInterface
 {
     public function __construct(
         private readonly TranslatorInterface $translator,
@@ -320,7 +323,7 @@ class ContextAwareTranslator implements TranslatorInterface
 }
 </code></pre>
 <h3><a id="content-fallback-chain-decorator" href="advanced-usage.html#content-fallback-chain-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Fallback Chain Decorator</h3>
-<pre><code class="language-php">class FallbackChainTranslator implements TranslatorInterface
+<pre><code class="line-numbers match-braces language-php">class FallbackChainTranslator implements TranslatorInterface
 {
     /** @var TranslatorInterface[] */
     private array $translators;
@@ -356,7 +359,7 @@ class ContextAwareTranslator implements TranslatorInterface
 }
 </code></pre>
 <h3><a id="content-caching-decorator" href="advanced-usage.html#content-caching-decorator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Caching Decorator</h3>
-<pre><code class="language-php">class CachingTranslator implements TranslatorInterface
+<pre><code class="line-numbers match-braces language-php">class CachingTranslator implements TranslatorInterface
 {
     public function __construct(
         private readonly TranslatorInterface $translator,
@@ -406,12 +409,21 @@ class ContextAwareTranslator implements TranslatorInterface
 </div>
 </div>
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/translation</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/translation" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/translation
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/translation" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/translation" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a class="list-group-item list-group-item-action " href="index.html">
@@ -459,9 +471,15 @@ class ContextAwareTranslator implements TranslatorInterface
         </div>
     
             <div id="footer-container"></div>
-<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://derafu.org/js/derafu.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
     </body>
 </html>

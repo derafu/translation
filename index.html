@@ -5,21 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Derafu: Translation - Translation Library with Exception Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
-    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/css/styles.min.css" rel="stylesheet" />
     </head>
-<body class="derafu-theme-earthstone">
+<body>
                 <div id="header-container" class="sticky-top"></div>
     
             <div class="container">
             <div class="row">
-                <main class="col-md-10">
+                <main class="col-md-9">
                     <div class="container py-4">
     <div class="markdown-body"><h1><a id="content-derafu-translation---translation-library-with-exception-support" href="index.html#content-derafu-translation---translation-library-with-exception-support" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Derafu: Translation - Translation Library with Exception Support</h1>
-<p><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://github.com/derafu/translation/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/derafu/translation/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" /></a>
-<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<p><img src="https://img.shields.io/github/last-commit/derafu/translation/main" alt="GitHub last commit" />
+<img src="https://github.com/derafu/translation/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" />
+<img src="https://img.shields.io/github/languages/code-size/derafu/translation" alt="GitHub code size in bytes" />
+<img src="https://img.shields.io/github/issues-raw/derafu/translation" alt="GitHub Issues" />
+<img src="https://poser.pugx.org/derafu/translation/downloads" alt="Total Downloads" />
+<img src="https://poser.pugx.org/derafu/translation/d/monthly" alt="Monthly Downloads" /></p>
 <p>A PHP library that solves one specific problem: <strong>making exceptions translatable without compromising your existing code</strong>, while providing powerful ICU message formatting support.</p>
 <h2><a id="content-features" href="index.html#content-features" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Features</h2>
 <ul>
@@ -32,11 +39,11 @@
 <li>🧩 <strong>Extensible</strong>: Easy to add custom message providers.</li>
 </ul>
 <h2><a id="content-installation" href="index.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
-<pre><code class="language-bash">composer require derafu/translation
+<pre><code class="line-numbers match-braces language-bash">composer require derafu/translation
 </code></pre>
 <h2><a id="content-basic-usage" href="index.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
 <h3><a id="content-making-exceptions-translatable" href="index.html#content-making-exceptions-translatable" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Making Exceptions Translatable</h3>
-<pre><code class="language-php">// Before: Your existing exception.
+<pre><code class="line-numbers match-braces language-php">// Before: Your existing exception.
 class ValidationException extends Exception
 {
     public function __construct(string $message)
@@ -52,7 +59,7 @@ class ValidationException extends TranslatableException
 }
 </code></pre>
 <h3><a id="content-using-translatable-exceptions" href="index.html#content-using-translatable-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using Translatable Exceptions</h3>
-<pre><code class="language-php">// 1. Simple string (works like before).
+<pre><code class="line-numbers match-braces language-php">// 1. Simple string (works like before).
 throw new ValidationException('Email is invalid');
 
 // 2. With translation key and parameters.
@@ -78,7 +85,7 @@ throw new ValidationException(
 </code></pre>
 <h3><a id="content-translation-files" href="index.html#content-translation-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translation Files</h3>
 <p>Support for multiple formats:</p>
-<pre><code class="language-php">// PHP arrays (fastest).
+<pre><code class="line-numbers match-braces language-php">// PHP arrays (fastest).
 // translations/messages/en.php
 return [
     'welcome' =&gt; 'Welcome {name}!',
@@ -98,7 +105,7 @@ welcome: 'Welcome {name}!'
 messages: '{count, plural, =0{No messages} one{# message} other{# messages}}'
 </code></pre>
 <h3><a id="content-setting-up-the-translator" href="index.html#content-setting-up-the-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Setting Up the Translator</h3>
-<pre><code class="language-php">use Derafu\Translation\Translator;
+<pre><code class="line-numbers match-braces language-php">use Derafu\Translation\Translator;
 use Derafu\Translation\Provider\PhpMessageProvider;
 
 // Create provider.
@@ -151,12 +158,21 @@ try {
 </div>
 </div>
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/translation</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/translation" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/translation
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/translation" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/translation" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a class="list-group-item list-group-item-action active" href="index.html">
@@ -204,9 +220,15 @@ try {
         </div>
     
             <div id="footer-container"></div>
-<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://derafu.org/js/derafu.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
     </body>
 </html>

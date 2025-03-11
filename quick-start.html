@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Derafu: Translation - Translation Library with Exception Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
-    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/css/styles.min.css" rel="stylesheet" />
     </head>
-<body class="derafu-theme-earthstone">
+<body>
                 <div id="header-container" class="sticky-top"></div>
     
             <div class="container">
             <div class="row">
-                <main class="col-md-10">
+                <main class="col-md-9">
                     <div class="container py-4">
     <div class="markdown-body"><h1><a id="content-quick-start-guide" href="quick-start.html#content-quick-start-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Quick Start Guide</h1>
 <p>Get started with Derafu Translation library in minutes.</p>
@@ -47,10 +50,10 @@
 </ul>
 <h2><a id="content-installation" href="quick-start.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
 <p>Install via Composer:</p>
-<pre><code class="language-bash">composer require derafu/translation
+<pre><code class="line-numbers match-braces language-bash">composer require derafu/translation
 </code></pre>
 <p>Optional dependencies:</p>
-<pre><code class="language-bash"># If you want to use YAML files.
+<pre><code class="line-numbers match-braces language-bash"># If you want to use YAML files.
 composer require symfony/yaml
 
 # If you want to use Symfony's translator.
@@ -59,7 +62,7 @@ composer require symfony/translation
 <h2><a id="content-basic-setup" href="quick-start.html#content-basic-setup" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Setup</h2>
 <h3><a id="content-1-create-translation-files" href="quick-start.html#content-1-create-translation-files" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. Create Translation Files</h3>
 <p>Choose your preferred format:</p>
-<pre><code class="language-php">// translations/messages/en.php
+<pre><code class="line-numbers match-braces language-php">// translations/messages/en.php
 return [
     'welcome' =&gt; 'Welcome {name}!',
     'errors' =&gt; [
@@ -68,21 +71,21 @@ return [
     ]
 ];
 </code></pre>
-<pre><code class="language-json">// translations/messages/en.json
+<pre><code class="line-numbers match-braces language-json">// translations/messages/en.json
 {
     &quot;welcome&quot;: &quot;Welcome {name}!&quot;,
     &quot;errors.required&quot;: &quot;The field {field} is required.&quot;,
     &quot;errors.email&quot;: &quot;Invalid email: {email}&quot;
 }
 </code></pre>
-<pre><code class="language-yaml"># translations/messages/en.yaml
+<pre><code class="line-numbers match-braces language-yaml"># translations/messages/en.yaml
 welcome: 'Welcome {name}!'
 errors:
   required: 'The field {field} is required.'
   email: 'Invalid email: {email}'
 </code></pre>
 <h3><a id="content-2-create-translator" href="quick-start.html#content-2-create-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Create Translator</h3>
-<pre><code class="language-php">use Derafu\Translation\Translator;
+<pre><code class="line-numbers match-braces language-php">use Derafu\Translation\Translator;
 use Derafu\Translation\Provider\PhpMessageProvider;
 
 // Create message provider.
@@ -96,7 +99,7 @@ $translator = new Translator(
 );
 </code></pre>
 <h3><a id="content-3-make-exceptions-translatable" href="quick-start.html#content-3-make-exceptions-translatable" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>3. Make Exceptions Translatable</h3>
-<pre><code class="language-php">use Derafu\Translation\Exception\Core\TranslatableException;
+<pre><code class="line-numbers match-braces language-php">use Derafu\Translation\Exception\Core\TranslatableException;
 
 class ValidationException extends TranslatableException
 {
@@ -105,7 +108,7 @@ class ValidationException extends TranslatableException
 </code></pre>
 <h2><a id="content-first-translation" href="quick-start.html#content-first-translation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>First Translation</h2>
 <h3><a id="content-basic-usage" href="quick-start.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h3>
-<pre><code class="language-php">// 1. Simple string messages.
+<pre><code class="line-numbers match-braces language-php">// 1. Simple string messages.
 throw new ValidationException('Email is required.');
 
 // 2. With translation key.
@@ -122,7 +125,7 @@ throw new ValidationException(
 );
 </code></pre>
 <h3><a id="content-handling-exceptions" href="quick-start.html#content-handling-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Handling Exceptions</h3>
-<pre><code class="language-php">try {
+<pre><code class="line-numbers match-braces language-php">try {
     // Your code.
 } catch (ValidationException $e) {
     // Get default message.
@@ -137,7 +140,7 @@ throw new ValidationException(
 </code></pre>
 <h2><a id="content-common-use-cases" href="quick-start.html#content-common-use-cases" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Use Cases</h2>
 <h3><a id="content-form-validation" href="quick-start.html#content-form-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Form Validation</h3>
-<pre><code class="language-php">class UserController
+<pre><code class="line-numbers match-braces language-php">class UserController
 {
     public function create(Request $request): Response
     {
@@ -162,7 +165,7 @@ throw new ValidationException(
 }
 </code></pre>
 <h3><a id="content-api-responses" href="quick-start.html#content-api-responses" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Responses</h3>
-<pre><code class="language-php">class ErrorHandler
+<pre><code class="line-numbers match-braces language-php">class ErrorHandler
 {
     public function handle(Throwable $e): JsonResponse
     {
@@ -180,7 +183,7 @@ throw new ValidationException(
 }
 </code></pre>
 <h3><a id="content-complex-messages" href="quick-start.html#content-complex-messages" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Complex Messages</h3>
-<pre><code class="language-php">// Pluralization.
+<pre><code class="line-numbers match-braces language-php">// Pluralization.
 throw new ValidationException(
     '{count, plural, =0{No files uploaded} one{1 file uploaded} other{# files uploaded}}',
     ['count' =&gt; $fileCount]
@@ -206,7 +209,7 @@ throw new ValidationException(
 <ol>
 <li>
 <p>Always include ‘other’ case in plural/select patterns:</p>
-<pre><code class="language-php">// Wrong.
+<pre><code class="line-numbers match-braces language-php">// Wrong.
 '{gender, select, female{She} male{He}}'
 
 // Correct.
@@ -215,7 +218,7 @@ throw new ValidationException(
 </li>
 <li>
 <p>Remember to provide all parameters:</p>
-<pre><code class="language-php">// Will fail.
+<pre><code class="line-numbers match-braces language-php">// Will fail.
 throw new ValidationException(
     'The field {field} is required'
     // Missing parameters!
@@ -230,7 +233,7 @@ throw new ValidationException(
 </li>
 <li>
 <p>Use consistent translation keys:</p>
-<pre><code class="language-php">// Recommended structure.
+<pre><code class="line-numbers match-braces language-php">// Recommended structure.
 validation.required
 validation.email.invalid
 validation.range.between
@@ -241,7 +244,7 @@ validation.range.between
 <ol>
 <li>
 <p>Use constants for translation keys:</p>
-<pre><code class="language-php">final class Messages
+<pre><code class="line-numbers match-braces language-php">final class Messages
 {
     public const REQUIRED = 'validation.required';
     public const EMAIL_INVALID = 'validation.email.invalid';
@@ -250,7 +253,7 @@ validation.range.between
 </li>
 <li>
 <p>Create factory methods for common exceptions:</p>
-<pre><code class="language-php">class ValidationException extends TranslatableException
+<pre><code class="line-numbers match-braces language-php">class ValidationException extends TranslatableException
 {
     public static function required(string $field): self
     {
@@ -264,7 +267,7 @@ validation.range.between
 </li>
 <li>
 <p>Use type hints for better IDE support:</p>
-<pre><code class="language-php">/**
+<pre><code class="line-numbers match-braces language-php">/**
  * @throws ValidationException When email is invalid
  */
 public function validateEmail(string $email): void
@@ -277,12 +280,21 @@ public function validateEmail(string $email): void
 </div>
 </div>
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/translation</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/translation" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/translation
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/translation" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/translation" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a class="list-group-item list-group-item-action " href="index.html">
@@ -330,9 +342,15 @@ public function validateEmail(string $email): void
         </div>
     
             <div id="footer-container"></div>
-<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://derafu.org/js/derafu.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
     </body>
 </html>

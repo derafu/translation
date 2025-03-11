@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Derafu: Translation - Translation Library with Exception Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
-    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/css/styles.min.css" rel="stylesheet" />
     </head>
-<body class="derafu-theme-earthstone">
+<body>
                 <div id="header-container" class="sticky-top"></div>
     
             <div class="container">
             <div class="row">
-                <main class="col-md-10">
+                <main class="col-md-9">
                     <div class="container py-4">
     <div class="markdown-body"><h1><a id="content-api-reference" href="api-reference.html#content-api-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Reference</h1>
 <p>Complete reference documentation for the Derafu Translation library.</p>
@@ -50,7 +53,7 @@
 <h2><a id="content-interfaces" href="api-reference.html#content-interfaces" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Interfaces</h2>
 <h3><a id="content-translatableinterface" href="api-reference.html#content-translatableinterface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableInterface</h3>
 <p>Extends Symfony’s <code>TranslatorInterface</code> and adds ICU support.</p>
-<pre><code class="language-php">interface TranslatableInterface extends TranslatorInterface, Stringable
+<pre><code class="line-numbers match-braces language-php">interface TranslatableInterface extends TranslatorInterface, Stringable
 {
     /**
      * Converts the message to a string using ICU formatting.
@@ -60,7 +63,7 @@
 </code></pre>
 <h3><a id="content-messageproviderinterface" href="api-reference.html#content-messageproviderinterface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>MessageProviderInterface</h3>
 <p>Defines how translation messages are loaded.</p>
-<pre><code class="language-php">interface MessageProviderInterface
+<pre><code class="line-numbers match-braces language-php">interface MessageProviderInterface
 {
     /**
      * Returns all messages for a given locale and domain.
@@ -83,7 +86,7 @@
 <h2><a id="content-classes" href="api-reference.html#content-classes" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Classes</h2>
 <h3><a id="content-translatablemessage" href="api-reference.html#content-translatablemessage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableMessage</h3>
 <p>Core message class that supports ICU formatting.</p>
-<pre><code class="language-php">final class TranslatableMessage implements TranslatableInterface
+<pre><code class="line-numbers match-braces language-php">final class TranslatableMessage implements TranslatableInterface
 {
     /**
      * @param string $message The message used for translation.
@@ -111,7 +114,7 @@
 </code></pre>
 <h3><a id="content-translator" href="api-reference.html#content-translator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Translator</h3>
 <p>Main translator implementation, using Symfony’s <code>TranslatorTrait</code>, with ICU and fallback support.</p>
-<pre><code class="language-php">final class Translator implements TranslatorInterface
+<pre><code class="line-numbers match-braces language-php">final class Translator implements TranslatorInterface
 {
     /**
      * @param MessageProviderInterface $provider Provider of messages.
@@ -138,7 +141,7 @@
 <h2><a id="content-exceptions" href="api-reference.html#content-exceptions" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Exceptions</h2>
 <h3><a id="content-translatableexception" href="api-reference.html#content-translatableexception" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>TranslatableException</h3>
 <p>Base exception class that supports translation.</p>
-<pre><code class="language-php">abstract class TranslatableException extends Exception implements TranslatableInterface
+<pre><code class="line-numbers match-braces language-php">abstract class TranslatableException extends Exception implements TranslatableInterface
 {
     /**
      * @param string|array|TranslatableInterface $message The exception message:
@@ -164,7 +167,7 @@
 <h2><a id="content-message-providers" href="api-reference.html#content-message-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Message Providers</h2>
 <h3><a id="content-abstractmessageprovider" href="api-reference.html#content-abstractmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>AbstractMessageProvider</h3>
 <p>Base class for file-based message providers.</p>
-<pre><code class="language-php">abstract class AbstractMessageProvider implements MessageProviderInterface
+<pre><code class="line-numbers match-braces language-php">abstract class AbstractMessageProvider implements MessageProviderInterface
 {
     /**
      * @param string $directory Base directory for translation files.
@@ -189,7 +192,7 @@
 </code></pre>
 <h3><a id="content-phpmessageprovider" href="api-reference.html#content-phpmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>PhpMessageProvider</h3>
 <p>Loads translations from PHP files.</p>
-<pre><code class="language-php">final class PhpMessageProvider extends AbstractMessageProvider
+<pre><code class="line-numbers match-braces language-php">final class PhpMessageProvider extends AbstractMessageProvider
 {
     /**
      * Expected file format:
@@ -205,7 +208,7 @@
 </code></pre>
 <h3><a id="content-jsonmessageprovider" href="api-reference.html#content-jsonmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>JsonMessageProvider</h3>
 <p>Loads translations from JSON files.</p>
-<pre><code class="language-php">final class JsonMessageProvider extends AbstractMessageProvider
+<pre><code class="line-numbers match-braces language-php">final class JsonMessageProvider extends AbstractMessageProvider
 {
     /**
      * Expected file format:
@@ -220,7 +223,7 @@
 </code></pre>
 <h3><a id="content-yamlmessageprovider" href="api-reference.html#content-yamlmessageprovider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>YamlMessageProvider</h3>
 <p>Loads translations from YAML files (requires symfony/yaml).</p>
-<pre><code class="language-php">final class YamlMessageProvider extends AbstractMessageProvider
+<pre><code class="line-numbers match-braces language-php">final class YamlMessageProvider extends AbstractMessageProvider
 {
     /**
      * Expected file format:
@@ -243,12 +246,21 @@
 </div>
 </div>
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/translation</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/translation" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/translation
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/translation" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/translation" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a class="list-group-item list-group-item-action " href="index.html">
@@ -296,9 +308,15 @@
         </div>
     
             <div id="footer-container"></div>
-<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://derafu.org/js/derafu.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
     </body>
 </html>

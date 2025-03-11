@@ -5,17 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Derafu: Translation - Translation Library with Exception Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
-    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/css/styles.min.css" rel="stylesheet" />
     </head>
-<body class="derafu-theme-earthstone">
+<body>
                 <div id="header-container" class="sticky-top"></div>
     
             <div class="container">
             <div class="row">
-                <main class="col-md-10">
+                <main class="col-md-9">
                     <div class="container py-4">
     <div class="markdown-body"><h1><a id="content-creating-custom-message-providers" href="custom-providers.html#content-creating-custom-message-providers" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Creating Custom Message Providers</h1>
 <p>This guide explains how to create custom message providers for different translation storage formats and sources.</p>
@@ -33,7 +36,7 @@
 </ul>
 <h2><a id="content-provider-interface" href="custom-providers.html#content-provider-interface" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Provider Interface</h2>
 <p>All message providers must implement the <code>MessageProviderInterface</code>:</p>
-<pre><code class="language-php">interface MessageProviderInterface
+<pre><code class="line-numbers match-braces language-php">interface MessageProviderInterface
 {
     /**
      * Returns all messages for a given locale and domain.
@@ -55,7 +58,7 @@
 </code></pre>
 <h2><a id="content-basic-implementation" href="custom-providers.html#content-basic-implementation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Implementation</h2>
 <p>Here’s a simple example of a custom provider that loads messages from a database:</p>
-<pre><code class="language-php">use Derafu\Translation\Contract\MessageProviderInterface;
+<pre><code class="line-numbers match-braces language-php">use Derafu\Translation\Contract\MessageProviderInterface;
 use PDO;
 
 final class DatabaseMessageProvider implements MessageProviderInterface
@@ -93,7 +96,7 @@ final class DatabaseMessageProvider implements MessageProviderInterface
 </code></pre>
 <h2><a id="content-using-the-abstract-provider" href="custom-providers.html#content-using-the-abstract-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Using the Abstract Provider</h2>
 <p>For file-based providers, you can extend the <code>AbstractMessageProvider</code>:</p>
-<pre><code class="language-php">use Derafu\Translation\Abstract\AbstractMessageProvider;
+<pre><code class="line-numbers match-braces language-php">use Derafu\Translation\Abstract\AbstractMessageProvider;
 
 final class IniMessageProvider extends AbstractMessageProvider
 {
@@ -128,7 +131,7 @@ final class IniMessageProvider extends AbstractMessageProvider
 </ul>
 <h2><a id="content-other-examples" href="custom-providers.html#content-other-examples" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Other Examples</h2>
 <h3><a id="content-redis-provider" href="custom-providers.html#content-redis-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Redis Provider</h3>
-<pre><code class="language-php">use Redis;
+<pre><code class="line-numbers match-braces language-php">use Redis;
 use Derafu\Translation\Contract\MessageProviderInterface;
 
 final class RedisMessageProvider implements MessageProviderInterface
@@ -160,7 +163,7 @@ final class RedisMessageProvider implements MessageProviderInterface
 }
 </code></pre>
 <h3><a id="content-api-provider" href="custom-providers.html#content-api-provider" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Provider</h3>
-<pre><code class="language-php">use GuzzleHttp\Client;
+<pre><code class="line-numbers match-braces language-php">use GuzzleHttp\Client;
 use Derafu\Translation\Contract\MessageProviderInterface;
 
 final class ApiMessageProvider implements MessageProviderInterface
@@ -200,7 +203,7 @@ final class ApiMessageProvider implements MessageProviderInterface
 <ol>
 <li>
 <p><strong>Error Handling</strong></p>
-<pre><code class="language-php">protected function parseFile(string $file): array
+<pre><code class="line-numbers match-braces language-php">protected function parseFile(string $file): array
 {
     try {
         // Parse file.
@@ -214,7 +217,7 @@ final class ApiMessageProvider implements MessageProviderInterface
 </li>
 <li>
 <p><strong>Caching Support</strong></p>
-<pre><code class="language-php">final class CachedProvider implements MessageProviderInterface
+<pre><code class="line-numbers match-braces language-php">final class CachedProvider implements MessageProviderInterface
 {
     public function __construct(
         private readonly MessageProviderInterface $provider,
@@ -236,7 +239,7 @@ final class ApiMessageProvider implements MessageProviderInterface
 </li>
 <li>
 <p><strong>Validation</strong></p>
-<pre><code class="language-php">private function validateMessages(array $messages): void
+<pre><code class="line-numbers match-braces language-php">private function validateMessages(array $messages): void
 {
     foreach ($messages as $key =&gt; $value) {
         if (!is_string($key)) {
@@ -251,7 +254,7 @@ final class ApiMessageProvider implements MessageProviderInterface
 </li>
 <li>
 <p><strong>Logging and Debugging</strong></p>
-<pre><code class="language-php">public function getMessages(string $locale, string $domain = 'messages'): array
+<pre><code class="line-numbers match-braces language-php">public function getMessages(string $locale, string $domain = 'messages'): array
 {
     $messages = $this-&gt;loadMessages($locale, $domain);
 
@@ -280,12 +283,21 @@ final class ApiMessageProvider implements MessageProviderInterface
 </div>
 </div>
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/translation</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/translation" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/translation
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/translation" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/translation" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a class="list-group-item list-group-item-action " href="index.html">
@@ -333,9 +345,15 @@ final class ApiMessageProvider implements MessageProviderInterface
         </div>
     
             <div id="footer-container"></div>
-<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://derafu.org/js/derafu.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
     </body>
 </html>
