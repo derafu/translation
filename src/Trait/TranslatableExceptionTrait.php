@@ -93,6 +93,44 @@ trait TranslatableExceptionTrait
     }
 
     /**
+     * Serializes the exception without the stack trace, which may contain
+     * non-serializable values (closures, resources). The trace is intentionally
+     * excluded so the exception can be safely stored in sessions (e.g. flash
+     * messages). After unserialization getTrace() returns an empty array.
+     *
+     * @return array<string, mixed>
+     */
+    public function __serialize(): array
+    {
+        return [
+            'message'             => $this->getMessage(),
+            'code'                => $this->getCode(),
+            'file'                => $this->getFile(),
+            'line'                => $this->getLine(),
+            'previous'            => $this->getPrevious(),
+            'defaultDomain'       => $this->defaultDomain,
+            'defaultLocale'       => $this->defaultLocale,
+            'translatableMessage' => $this->translatableMessage,
+        ];
+    }
+
+    /**
+     * Restores the exception state from serialized data.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->message             = $data['message'];
+        $this->code                = $data['code'];
+        $this->file                = $data['file'];
+        $this->line                = $data['line'];
+        $this->defaultDomain       = $data['defaultDomain'];
+        $this->defaultLocale       = $data['defaultLocale'];
+        $this->translatableMessage = $data['translatableMessage'];
+    }
+
+    /**
      * Normalize the $message into a TranslatableMessage and return the default
      * string for the exception.
      *
