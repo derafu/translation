@@ -18,7 +18,6 @@ use Derafu\Translation\TranslatableMessage;
 use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
@@ -27,13 +26,6 @@ use Throwable;
 #[CoversClass(TranslatableMessage::class)]
 final class TranslatableExceptionTest extends TestCase
 {
-    private MockObject&TranslatorInterface $translator;
-
-    protected function setUp(): void
-    {
-        $this->translator = $this->createMock(TranslatorInterface::class);
-    }
-
     public function testConstructWithParameters(): void
     {
         $exception = new TranslatableException([
@@ -41,7 +33,8 @@ final class TranslatableExceptionTest extends TestCase
             'param' => 'value',
         ]);
 
-        $this->translator
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
             ->expects($this->once())
             ->method('trans')
             ->with(
@@ -54,7 +47,7 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'Test with value',
-            $exception->trans($this->translator)
+            $exception->trans($translator)
         );
     }
 
@@ -115,7 +108,8 @@ final class TranslatableExceptionTest extends TestCase
     {
         $exception = new class ('validation.required') extends TranslatableException {};
 
-        $this->translator
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
             ->expects($this->once())
             ->method('trans')
             ->with(
@@ -128,7 +122,7 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'This field is required',
-            $exception->trans($this->translator)
+            $exception->trans($translator)
         );
     }
 
@@ -140,7 +134,8 @@ final class TranslatableExceptionTest extends TestCase
             'min' => 8,
         ]) extends TranslatableException {};
 
-        $this->translator
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
             ->expects($this->once())
             ->method('trans')
             ->with(
@@ -153,7 +148,7 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'The password must be at least 8 characters',
-            $exception->trans($this->translator)
+            $exception->trans($translator)
         );
     }
 
@@ -168,7 +163,8 @@ final class TranslatableExceptionTest extends TestCase
 
         $exception = new class ($message) extends TranslatableException {};
 
-        $this->translator
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
             ->expects($this->once())
             ->method('trans')
             ->with(
@@ -181,7 +177,7 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'Invalid email: test@example.com',
-            $exception->trans($this->translator)
+            $exception->trans($translator)
         );
     }
 
@@ -216,7 +212,8 @@ final class TranslatableExceptionTest extends TestCase
             protected string $defaultLocale = 'es';
         };
 
-        $this->translator
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
             ->expects($this->once())
             ->method('trans')
             ->with(
@@ -229,7 +226,7 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'Mensaje personalizado',
-            $exception->trans($this->translator)
+            $exception->trans($translator)
         );
     }
 }

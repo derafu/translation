@@ -102,10 +102,10 @@ final class PhpMessageProviderTest extends TestCase
         $provider = new PhpMessageProvider($this->fixturesDir);
         $messages = $provider->getMessages('en');
 
-        $this->assertIsArray($messages);
+        $this->assertCount(5, $messages);
         foreach ($messages as $key => $value) {
-            $this->assertIsString($key);
-            $this->assertIsString($value);
+            $this->assertNotEmpty($key);
+            $this->assertNotEmpty($value);
         }
     }
 }

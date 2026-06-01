@@ -15,7 +15,6 @@ namespace Derafu\Translation;
 use Derafu\Translation\Contract\TranslatableInterface;
 use IntlException;
 use MessageFormatter;
-use RuntimeException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -39,8 +38,6 @@ final class TranslatableMessage implements TranslatableInterface
      * domain.
      * @param string $defaultLocale The locale to use for ICU formatting when no
      * translator is available. This must be a valid ICU locale identifier.
-     * @throws RuntimeException When ICU message formatting fails due to invalid
-     * message format or parameters.
      */
     public function __construct(
         private readonly string $message,

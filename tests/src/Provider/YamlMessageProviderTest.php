@@ -100,8 +100,8 @@ final class YamlMessageProviderTest extends TestCase
         $messages = $provider->getMessages('en');
 
         foreach ($messages as $key => $value) {
-            $this->assertIsString($key);
-            $this->assertIsString($value);
+            $this->assertNotEmpty($key);
+            $this->assertNotEmpty($value);
         }
     }
 

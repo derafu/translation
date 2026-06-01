@@ -27,14 +27,14 @@
     "require": {
         "php": "^8.5",
         "ext-intl": "*",
-        "symfony/translation-contracts": "^3.6",
-        "symfony/yaml": "^8.0"
+        "symfony/translation-contracts": "^3.7",
+        "symfony/yaml": "^8.1"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "friendsofphp/php-cs-fixer": "^3.94",
-        "phpstan/phpstan": "^1.12",
-        "phpunit/phpunit": "^11.5"
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^13.1"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
