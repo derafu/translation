@@ -1,0 +1,26 @@
+# Optional wiring for apps using symfony/dependency-injection.
+# Import it from your own services.yaml:
+#
+#   imports:
+#       - { resource: '../vendor/derafu/translation/resources/config/translation-services.yaml' }
+#
+# Tag each of your resource provider services explicitly (Symfony's
+# `_instanceof` autoconfiguration does not propagate across imported files,
+# so it can't be shipped here to autotag services declared in your file):
+#
+#   App\Translation\MyProvider:
+#       tags: ['derafu_translation.resource_provider']
+#
+# Registering the Translator itself is still up to your app (locale and
+# fallback locales are project-specific). TranslationResourceRegistrar is
+# pre-wired here: it only needs the Translator (autowired by type) and the
+# tagged providers, neither of which is project-specific.
+services:
+    _defaults:
+        autowire: true
+
+    Derafu\Translation\TranslationResourceRegistrar:
+        calls:
+            - method: registerFromProviders
+              arguments:
+                  - !tagged_iterator derafu_translation.resource_provider

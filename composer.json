@@ -28,7 +28,8 @@
         "php": "^8.5",
         "ext-intl": "*",
         "symfony/translation-contracts": "^3.7",
-        "symfony/yaml": "^8.1"
+        "symfony/yaml": "^8.1",
+        "symfony/translation": "^8.1"
     },
     "require-dev": {
         "ext-xdebug": "*",

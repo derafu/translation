@@ -1,3 +1,0 @@
-validation.required: 'El campo {field} es requerido'
-validation.email: 'Formato de email inválido: {email}'
-validation.between: 'El valor debe estar entre {min} y {max}'

@@ -1,0 +1,2 @@
+welcome: 'Welcome %name%!'
+raw_icu_placeholder: '{count, plural, one{# item} other{# items}}'
