@@ -38,12 +38,18 @@ trait TranslatableExceptionTrait
     protected string $defaultDomain = 'errors';
 
     /**
-     * The default locale to use for ICU formatting when no translator is
-     * available.
+     * The default locale to use when translating.
      *
-     * @var string
+     * `null` defers to the translator's own configured default locale (via
+     * `trans()`) or to `'en'` for ICU formatting when no translator is
+     * available at all (via `TranslatableMessage::__toString()`). This must
+     * stay `null` by default: hardcoding a locale here would silently
+     * override the translator's own configured locale whenever `trans()`
+     * is called without an explicit `$locale` argument.
+     *
+     * @var string|null
      */
-    protected string $defaultLocale = 'en';
+    protected ?string $defaultLocale = null;
 
     /**
      * The translatable message instance.

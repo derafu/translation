@@ -19,6 +19,8 @@ use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Translation\Loader\ArrayLoader;
+use Symfony\Component\Translation\Translator;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
 
@@ -33,6 +35,11 @@ final class TranslatableExceptionTest extends TestCase
             'param' => 'value',
         ]);
 
+        // Locale is null: with no explicit locale (constructor arg or
+        // trans() argument), the call must defer to the translator's own
+        // configured locale, not silently override it. See
+        // testTransWithoutExplicitLocaleUsesTranslatorDefaultLocale() below
+        // for the real-Translator regression test this guards.
         $translator = $this->createMock(TranslatorInterface::class);
         $translator
             ->expects($this->once())
@@ -41,7 +48,7 @@ final class TranslatableExceptionTest extends TestCase
                 'error.test',
                 ['param' => 'value'],
                 'errors',
-                'en'
+                null
             )
             ->willReturn('Test with value');
 
@@ -116,7 +123,7 @@ final class TranslatableExceptionTest extends TestCase
                 'validation.required',
                 [],
                 'errors',
-                'en'
+                null
             )
             ->willReturn('This field is required');
 
@@ -142,7 +149,7 @@ final class TranslatableExceptionTest extends TestCase
                 'validation.min_length',
                 ['field' => 'password', 'min' => 8],
                 'errors',
-                'en'
+                null
             )
             ->willReturn('The password must be at least 8 characters');
 
@@ -209,7 +216,7 @@ final class TranslatableExceptionTest extends TestCase
         $exception = new class ('custom.message') extends TranslatableException {
             protected string $defaultDomain = 'custom';
 
-            protected string $defaultLocale = 'es';
+            protected ?string $defaultLocale = 'es';
         };
 
         $translator = $this->createMock(TranslatorInterface::class);
@@ -226,6 +233,38 @@ final class TranslatableExceptionTest extends TestCase
 
         $this->assertSame(
             'Mensaje personalizado',
+            $exception->trans($translator)
+        );
+    }
+
+    /**
+     * Regression test for a real bug: `trans()` called with no explicit
+     * locale used to hardcode 'en' (the trait's old default), silently
+     * overriding the translator's own configured locale instead of
+     * deferring to it. With a real Translator (not a mock asserting call
+     * arguments), that meant: no catalogue entry for 'en', so Symfony fell
+     * back to formatting the id itself with plain strtr() and bare
+     * (non-`%name%`) parameter keys — corrupting the output by replacing
+     * the parameter name substring inside its own surrounding braces
+     * (`{reason}` became `{Connection timed out}`, not the intended
+     * substitution). This must resolve to the translator's real 'es'
+     * catalogue entry instead.
+     */
+    public function testTransWithoutExplicitLocaleUsesTranslatorDefaultLocale(): void
+    {
+        $translator = new Translator('es');
+        $translator->addLoader('array', new ArrayLoader());
+        $translator->addResource('array', [
+            'Error sending the message: {reason}.' => 'Error al enviar el mensaje: {reason}.',
+        ], 'es', 'errors+intl-icu');
+
+        $exception = new TranslatableException([
+            'Error sending the message: {reason}.',
+            'reason' => 'Connection timed out',
+        ]);
+
+        $this->assertSame(
+            'Error al enviar el mensaje: Connection timed out.',
             $exception->trans($translator)
         );
     }
