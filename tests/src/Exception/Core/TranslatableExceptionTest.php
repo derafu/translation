@@ -197,7 +197,7 @@ final class TranslatableExceptionTest extends TestCase
             'min' => 8,
         ]) extends TranslatableException {};
 
-        // Sin traductor, debe usar ICU directamente.
+        // Without a translator, it should use ICU formatting directly.
         $this->assertSame(
             'The field password must be at least 8 characters',
             $exception->getMessage()

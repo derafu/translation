@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Translation;
 
+use Derafu\Translation\Contract\TranslationResourceProviderInterface;
 use Symfony\Component\Translation\Loader\CsvFileLoader;
 use Symfony\Component\Translation\Loader\IniFileLoader;
 use Symfony\Component\Translation\Loader\JsonFileLoader;
@@ -31,10 +32,19 @@ final class TranslatorFactory
 {
     /**
      * @param array<string> $fallbackLocales
+     * @param iterable<TranslationResourceProviderInterface> $resourceProviders
+     * Resource providers to register immediately, as part of building the
+     * translator. Registration happens here — not via a separately fetched
+     * `TranslationResourceRegistrar` — specifically so it always runs
+     * whenever a `Translator` is built, regardless of whether anything else
+     * in the container happens to reference the registrar directly. A
+     * registrar with nothing depending on it is never instantiated by a DI
+     * container, so its resources would silently never load.
      */
     public static function create(
         string $defaultLocale,
-        array $fallbackLocales = []
+        array $fallbackLocales = [],
+        iterable $resourceProviders = []
     ): Translator {
         $translator = new Translator($defaultLocale);
 
@@ -49,6 +59,16 @@ final class TranslatorFactory
 
         if ($fallbackLocales !== []) {
             $translator->setFallbackLocales($fallbackLocales);
+        }
+
+        $providers = is_array($resourceProviders)
+            ? $resourceProviders
+            : iterator_to_array($resourceProviders, false);
+
+        if ($providers !== []) {
+            (new TranslationResourceRegistrar($translator))
+                ->registerFromProviders($providers)
+            ;
         }
 
         return $translator;

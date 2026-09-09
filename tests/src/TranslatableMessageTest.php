@@ -73,9 +73,9 @@ final class TranslatableMessageTest extends TestCase
 
     public function testFallbackOnInvalidIcuFormat(): void
     {
-        // Un mensaje ICU inválido debe retornar el mensaje original.
+        // An invalid ICU message should return the original message.
         $message = new TranslatableMessage(
-            'Hello {name',  // Falta cerrar el placeholder.
+            'Hello {name',  // Missing closing brace for the placeholder.
             ['name' => 'John'],
             null,
             'en'

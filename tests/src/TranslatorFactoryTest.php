@@ -12,12 +12,16 @@ declare(strict_types=1);
 
 namespace Derafu\TestsTranslation;
 
+use Derafu\Translation\SimpleTranslationResourceProvider;
+use Derafu\Translation\TranslationResourceRegistrar;
 use Derafu\Translation\TranslatorFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 #[CoversClass(TranslatorFactory::class)]
+#[CoversClass(TranslationResourceRegistrar::class)]
+#[CoversClass(SimpleTranslationResourceProvider::class)]
 final class TranslatorFactoryTest extends TestCase
 {
     public function testCreatesTranslatorWithDefaultLocale(): void
@@ -53,5 +57,24 @@ final class TranslatorFactoryTest extends TestCase
                 sprintf('Expected a loader registered for the "%s" format.', $format)
             );
         }
+    }
+
+    public function testRegistersResourceProvidersImmediatelyDuringCreation(): void
+    {
+        // Regression test: registration must happen as part of create()
+        // itself, not via a separately fetched TranslationResourceRegistrar.
+        // A DI-built service nothing else depends on is never instantiated,
+        // so if registration depended on someone fetching the registrar
+        // afterwards, it would silently never run in a real container.
+        $provider = new SimpleTranslationResourceProvider([
+            __DIR__ . '/../fixtures/translations',
+        ]);
+
+        $translator = TranslatorFactory::create('en', [], [$provider]);
+
+        $this->assertSame(
+            'Welcome John!',
+            $translator->trans('welcome', ['name' => 'John'], 'messages+intl-icu')
+        );
     }
 }

@@ -11,16 +11,26 @@
 #   App\Translation\MyProvider:
 #       tags: ['derafu_translation.resource_provider']
 #
-# Registering the Translator itself is still up to your app (locale and
-# fallback locales are project-specific). TranslationResourceRegistrar is
-# pre-wired here: it only needs the Translator (autowired by type) and the
-# tagged providers, neither of which is project-specific.
+# Feed the tagged providers straight into TranslatorFactory::create() when
+# you register your own Translator (locale and fallback locales are
+# project-specific, so that registration itself still belongs in your app):
+#
+#   Symfony\Component\Translation\Translator:
+#       factory: ['Derafu\Translation\TranslatorFactory', 'create']
+#       arguments:
+#           $defaultLocale: 'es'
+#           $fallbackLocales: ['es', 'en']
+#           $resourceProviders: !tagged_iterator derafu_translation.resource_provider
+#
+# Registration happens inside that factory call, not via a separately
+# fetched TranslationResourceRegistrar — a service nothing else depends on
+# is never built by a DI container, so its resources would silently never
+# load. Feeding the providers into the factory call guarantees registration
+# runs every time a Translator is built.
+#
+# The alias below lets anything type-hint the translation-contracts
+# interface (as it should) and still resolve to the Translator service
+# above via autowiring. If you register your Translator under a different
+# service id, adjust this alias's target accordingly.
 services:
-    _defaults:
-        autowire: true
-
-    Derafu\Translation\TranslationResourceRegistrar:
-        calls:
-            - method: registerFromProviders
-              arguments:
-                  - !tagged_iterator derafu_translation.resource_provider
+    Symfony\Contracts\Translation\TranslatorInterface: '@Symfony\Component\Translation\Translator'
