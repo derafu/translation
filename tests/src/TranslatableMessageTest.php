@@ -15,6 +15,8 @@ namespace Derafu\TestsTranslation;
 use Derafu\Translation\TranslatableMessage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Translation\Loader\ArrayLoader;
+use Symfony\Component\Translation\Translator;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[CoversClass(TranslatableMessage::class)]
@@ -116,5 +118,86 @@ final class TranslatableMessageTest extends TestCase
             'User admin has 2 messages in inbox',
             (string) $message
         );
+    }
+
+    private function translator(string $locale = 'es'): Translator
+    {
+        $translator = new Translator($locale);
+        $translator->addLoader('array', new ArrayLoader());
+
+        return $translator;
+    }
+
+    /**
+     * Without an entry in the catalogue, Symfony does not apply ICU: it would
+     * replace the name of the parameter inside the braces (`{John}`). The
+     * message must come out as its own string, the same as `(string)`.
+     */
+    public function testWithoutAnEntryItIsFormattedLikeTheMessageItself(): void
+    {
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John'], 'errors', 'en');
+
+        $this->assertSame('Hello John', $message->trans($this->translator()));
+        $this->assertSame((string) $message, $message->trans($this->translator()));
+    }
+
+    public function testWithoutAnEntryAnIcuPluralIsFormatted(): void
+    {
+        $message = new TranslatableMessage(
+            '{count, plural, one{# message} other{# messages}}',
+            ['count' => 5],
+            'errors',
+            'en'
+        );
+
+        $this->assertSame('5 messages', $message->trans($this->translator()));
+    }
+
+    public function testWithoutAnEntryAndWithoutParametersTheTextIsKept(): void
+    {
+        $message = new TranslatableMessage('Not Found', [], 'errors', 'en');
+
+        $this->assertSame('Not Found', $message->trans($this->translator()));
+    }
+
+    public function testWithAnEntryItIsTranslated(): void
+    {
+        $translator = $this->translator();
+        $translator->addResource('array', ['Hello {name}' => 'Hola {name}'], 'es', 'errors+intl-icu');
+
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John'], 'errors');
+
+        $this->assertSame('Hola John', $message->trans($translator));
+    }
+
+    public function testAnEntryOfTheFallbackLocaleIsFound(): void
+    {
+        $translator = $this->translator('fr');
+        $translator->setFallbackLocales(['es']);
+        $translator->addResource('array', ['Hello {name}' => 'Hola {name}'], 'es', 'errors+intl-icu');
+
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John'], 'errors');
+
+        $this->assertSame('Hola John', $message->trans($translator, 'fr'));
+    }
+
+    public function testAnEntryOfAnotherDomainIsNotAnEntry(): void
+    {
+        $translator = $this->translator();
+        $translator->addResource('array', ['Hello {name}' => 'Hola {name}'], 'es', 'other+intl-icu');
+
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John'], 'errors');
+
+        $this->assertSame('Hello John', $message->trans($translator));
+    }
+
+    public function testWithoutADomainTheDefaultDomainIsLookedUp(): void
+    {
+        $translator = $this->translator();
+        $translator->addResource('array', ['Hello {name}' => 'Hola {name}'], 'es', 'messages+intl-icu');
+
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John']);
+
+        $this->assertSame('Hola John', $message->trans($translator));
     }
 }

@@ -15,6 +15,7 @@ namespace Derafu\Translation;
 use Derafu\Translation\Contract\TranslatableInterface;
 use IntlException;
 use MessageFormatter;
+use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -50,6 +51,12 @@ final class TranslatableMessage implements TranslatableInterface
     /**
      * Translates the message using the provided translator.
      *
+     * If the translator knows its catalogues (`TranslatorBagInterface`, like
+     * Symfony's) and has no entry for the message, the message is formatted as
+     * it is by `__toString()`. Without an entry, Symfony does not apply ICU: it
+     * would replace the name of each parameter inside the braces, leaving
+     * `{value}` in the text.
+     *
      * @param TranslatorInterface $translator The translator to use.
      * @param string|null $locale The locale to translate to or `null` for
      * default.
@@ -59,11 +66,20 @@ final class TranslatableMessage implements TranslatableInterface
         TranslatorInterface $translator,
         ?string $locale = null
     ): string {
+        $locale ??= $this->defaultLocale;
+
+        if (
+            $translator instanceof TranslatorBagInterface
+            && !$translator->getCatalogue($locale)->has($this->message, $this->domain ?? 'messages')
+        ) {
+            return (string) $this;
+        }
+
         return $translator->trans(
             $this->message,
             $this->parameters,
             $this->domain,
-            $locale ?? $this->defaultLocale
+            $locale
         );
     }
 
