@@ -148,6 +148,216 @@ final class MessageReferenceScannerTest extends TestCase
         $this->assertSame([['Hello {name}.', 'errors']], $this->idsAndDomains($references));
     }
 
+    /**
+     * A ternary chooses between messages: each branch is a message that can be
+     * thrown, so each one is a reference.
+     */
+    public function testEachBranchOfATernaryIsAMessage(): void
+    {
+        $references = $this->scan("throw new TranslatableException(\$flag ? 'First.' : 'Second.');");
+
+        $this->assertSame([['First.', 'errors'], ['Second.', 'errors']], $this->idsAndDomains($references));
+        $this->assertFalse($references[0]->isDynamic());
+        $this->assertFalse($references[1]->isDynamic());
+        $this->assertSame($references[0]->line, $references[1]->line);
+    }
+
+    public function testTheBranchesOfATernaryCanBeArraysAndOtherTernaries(): void
+    {
+        $references = $this->scan(
+            "throw new TranslatableException(\$a ? ['Hello {name}.', 'name' => \$n] : (\$b ? 'B.' : 'C.'));"
+        );
+
+        $this->assertSame(
+            [['Hello {name}.', 'errors'], ['B.', 'errors'], ['C.', 'errors']],
+            $this->idsAndDomains($references)
+        );
+    }
+
+    public function testABranchOfATernaryThatIsNotALiteralIsDynamic(): void
+    {
+        $references = $this->scan("throw new TranslatableException(\$flag ? 'Known.' : \$other);");
+
+        $this->assertCount(2, $references);
+        $this->assertSame('Known.', $references[0]->id);
+        $this->assertFalse($references[0]->isDynamic());
+        $this->assertNull($references[1]->id);
+        $this->assertTrue($references[1]->isDynamic());
+    }
+
+    /**
+     * `$message ?: 'Fallback.'` throws `$message` when it is not empty, and that
+     * is only known when the code runs.
+     */
+    public function testAShortTernaryHasADynamicMessageAndALiteralOne(): void
+    {
+        $references = $this->scan("throw new TranslatableException(\$message ?: 'Fallback.');");
+
+        $this->assertCount(2, $references);
+        $this->assertTrue($references[0]->isDynamic());
+        $this->assertSame('Fallback.', $references[1]->id);
+        $this->assertFalse($references[1]->isDynamic());
+    }
+
+    public function testTheMessageOfATernaryKeepsTheDomainOfTheMessageThatItIsGivenTo(): void
+    {
+        $references = $this->scan("new TranslatableMessage(\$flag ? 'One.' : 'Two.', [], 'custom');");
+
+        $this->assertSame([['One.', 'custom'], ['Two.', 'custom']], $this->idsAndDomains($references));
+    }
+
+    /**
+     * An empty message has nothing to translate: it is a message that was not
+     * given, not a message without a translation.
+     */
+    public function testAnEmptyMessageIsNotAReference(): void
+    {
+        $this->assertSame([], $this->scan("throw new TranslatableException('');"));
+        $this->assertSame([], $this->scan("throw new TranslatableException(['']);"));
+        $this->assertSame([], $this->scan("new TranslatableMessage('');"));
+    }
+
+    public function testAnEmptyBranchOfATernaryIsNotAReference(): void
+    {
+        $references = $this->scan("throw new TranslatableException(\$flag ? 'Message.' : '');");
+
+        $this->assertSame([['Message.', 'errors']], $this->idsAndDomains($references));
+    }
+
+    public function testTheEmptyDefaultOfAMessageParameterIsNotAReference(): void
+    {
+        $references = array_filter(
+            $this->scanFixtures(),
+            fn (MessageReference $r) => str_ends_with($r->file, 'FixtureEmptyDefaultException.php')
+        );
+
+        $this->assertSame([], array_values($references));
+    }
+
+    /**
+     * A message that can not be checked says where it is, by the function that
+     * has it and the expression that can not be read, so it can be told from
+     * another one in the same file, and it does not change when the lines do.
+     */
+    public function testAMessageThatIsNotALiteralSaysItsFunctionAndItsExpression(): void
+    {
+        $references = $this->scan('throw new TranslatableException($message);');
+
+        $this->assertCount(1, $references);
+        $this->assertSame('Scanned\\probe', $references[0]->function);
+        $this->assertSame('new \\Derafu\\Translation\\Exception\\Core\\TranslatableException($message)', $references[0]->expression);
+        $this->assertSame(
+            'Scanned\\probe: new \\Derafu\\Translation\\Exception\\Core\\TranslatableException($message)',
+            $references[0]->identity()
+        );
+    }
+
+    public function testTwoMessagesThatAreNotLiteralsInTheSameFileHaveDifferentIdentities(): void
+    {
+        $references = $this->scan('throw new TranslatableException($one); throw new TranslatableException($two);');
+
+        $this->assertCount(2, $references);
+        $this->assertNotSame($references[0]->identity(), $references[1]->identity());
+    }
+
+    public function testTheFunctionIsTheMethodOfTheClassThatHasIt(): void
+    {
+        $references = array_values(array_filter(
+            $this->scanFixtures(),
+            fn (MessageReference $r) => $r->isDynamic() && str_ends_with($r->file, 'FixtureDomainException.php')
+        ));
+
+        $this->assertCount(1, $references);
+        $this->assertSame(
+            'Derafu\\TestsTranslation\\Lint\\Fixture\\FixtureDomainException::forDynamic',
+            $references[0]->function
+        );
+        $this->assertSame('new static($message)', $references[0]->expression);
+    }
+
+    public function testTheFunctionOfAClosureSaysSo(): void
+    {
+        $references = $this->scan('$f = function ($m) { throw new TranslatableException($m); };');
+
+        $this->assertSame('Scanned\\probe::{closure}', $references[0]->function);
+    }
+
+    /**
+     * When a closure ends, what comes after it is of the function that has it,
+     * not of the closure.
+     */
+    public function testTheFunctionGoesBackToTheOneThatHasTheClosureWhenItEnds(): void
+    {
+        $references = $this->scan(
+            "\$f = function (\$inside) { throw new TranslatableException(\$inside); };\n"
+            . "\$g = fn (\$inside) => new TranslatableException(\$inside);\n"
+            . 'throw new TranslatableException($after);'
+        );
+
+        $this->assertSame(
+            ['Scanned\\probe::{closure}', 'Scanned\\probe::{closure}', 'Scanned\\probe'],
+            array_map(fn (MessageReference $r) => $r->function, $references)
+        );
+    }
+
+    public function testTheFunctionOfAMethodOfATraitIsFound(): void
+    {
+        $references = (new MessageReferenceScanner())->scanFile(dirname(__DIR__, 3) . '/src/Trait/TranslatableExceptionTrait.php');
+        $dynamic = array_values(array_filter($references, fn (MessageReference $r) => $r->isDynamic()));
+
+        $this->assertSame(
+            [
+                'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
+                    . 'new \\Derafu\\Translation\\TranslatableMessage($msg, $message, $this->defaultDomain, $this->defaultLocale)',
+                'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
+                    . 'new \\Derafu\\Translation\\TranslatableMessage($message, [], $this->defaultDomain, $this->defaultLocale)',
+            ],
+            array_map(fn (MessageReference $r) => $r->identity(), $dynamic)
+        );
+    }
+
+    public function testTheExpressionOfADomainThatIsNotALiteralIsTheWholeCall(): void
+    {
+        $references = $this->scan("new TranslatableMessage('Message.', [], \$domain);");
+
+        $this->assertSame("new \\Derafu\\Translation\\TranslatableMessage('Message.', [], \$domain)", $references[0]->expression);
+    }
+
+    public function testTheExpressionOfASpreadIsTheSpread(): void
+    {
+        $references = $this->scan('throw new TranslatableException(...$arguments);');
+
+        $this->assertSame('new \\Derafu\\Translation\\Exception\\Core\\TranslatableException(...$arguments)', $references[0]->expression);
+    }
+
+    /**
+     * The expression is the whole call, not only the id: another call with the
+     * same id that is not a literal is another message, and a pinned message only
+     * changes when its own code does, not when other lines move.
+     */
+    public function testTwoCallsWithTheSameIdAreDifferentMessages(): void
+    {
+        $references = $this->scan('throw new TranslatableException($m, 1); throw new TranslatableException($m, 2);');
+
+        $this->assertCount(2, $references);
+        $this->assertNotSame($references[0]->identity(), $references[1]->identity());
+    }
+
+    public function testTheExpressionOfAnAnonymousClassIsTheCallWithoutItsBody(): void
+    {
+        $references = $this->scan('throw new class ($m) extends TranslatableException { public int $other = 1; };');
+
+        $this->assertSame('new class@anonymous($m)', $references[0]->expression);
+    }
+
+    public function testALiteralMessageHasTheFunctionButNoExpression(): void
+    {
+        $references = $this->scan("throw new TranslatableException('Literal.');");
+
+        $this->assertSame('Scanned\\probe', $references[0]->function);
+        $this->assertNull($references[0]->expression);
+    }
+
     public function testItFindsTheClassesThatAreImportedWithAnAlias(): void
     {
         $references = $this->scan("throw new InvalidArgumentException('Invalid.');");

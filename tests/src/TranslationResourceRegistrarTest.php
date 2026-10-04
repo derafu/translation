@@ -13,16 +13,22 @@ declare(strict_types=1);
 namespace Derafu\TestsTranslation;
 
 use Derafu\Translation\SimpleTranslationResourceProvider;
+use Derafu\Translation\Trait\TranslatableExceptionTrait;
+use Derafu\Translation\TranslatableMessage;
 use Derafu\Translation\TranslationResourceRegistrar;
 use Derafu\Translation\TranslatorFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Translation\Translator;
 
 #[CoversClass(TranslationResourceRegistrar::class)]
 #[CoversClass(TranslatorFactory::class)]
 #[CoversClass(SimpleTranslationResourceProvider::class)]
+#[UsesTrait(TranslatableExceptionTrait::class)]
+#[UsesClass(TranslatableMessage::class)]
 final class TranslationResourceRegistrarTest extends TestCase
 {
     private Translator $translator;

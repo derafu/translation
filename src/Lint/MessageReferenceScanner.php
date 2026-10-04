@@ -19,6 +19,8 @@ use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionException;
+use ReflectionMethod;
 
 /**
  * Finds the messages that the code builds to be translated: the ones given to
@@ -41,6 +43,28 @@ use RecursiveIteratorIterator;
 final class MessageReferenceScanner
 {
     /**
+     * The methods that receive the id of a message, ready to be read: with the
+     * position and the name of their arguments.
+     *
+     * @var list<array{class: string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}>
+     */
+    private array $methods = [];
+
+    /**
+     * @param list<MessageMethod> $methods The methods that receive the id of a
+     * message: their calls are messages. See `MessageMethod`.
+     * @throws InvalidArgumentException If a method, or one of its arguments,
+     * does not exist: a configuration that is wrong would look like a clean
+     * result.
+     */
+    public function __construct(array $methods = [])
+    {
+        foreach ($methods as $method) {
+            $this->methods[] = $this->normalize($method);
+        }
+    }
+
+    /**
      * Finds the references to messages of a PHP file, in order of line.
      *
      * @param string $file Path of the file.
@@ -62,7 +86,7 @@ final class MessageReferenceScanner
             (string) file_get_contents($file)
         ) ?? [];
 
-        $visitor = new MessageReferenceVisitor($file);
+        $visitor = new MessageReferenceVisitor($file, $this->methods);
         $traverser = new NodeTraverser(new NameResolver(), $visitor);
         $traverser->traverse($ast);
 
@@ -106,5 +130,58 @@ final class MessageReferenceScanner
         }
 
         return $references;
+    }
+
+    /**
+     * @return array{class: string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}
+     */
+    private function normalize(MessageMethod $method): array
+    {
+        try {
+            $parameters = (new ReflectionMethod($method->class, $method->method))->getParameters();
+        } catch (ReflectionException) {
+            throw new InvalidArgumentException([
+                'The method {class}::{method} does not exist.',
+                'class' => $method->class,
+                'method' => $method->method,
+            ]);
+        }
+
+        [$idPosition, $idName] = $this->argument($method, $parameters, $method->id);
+        [$domainPosition, $domainName] = $method->domainArgument === null
+            ? [null, null]
+            : $this->argument($method, $parameters, $method->domainArgument);
+
+        return [
+            'class' => $method->class,
+            'method' => $method->method,
+            'domain' => $method->domain,
+            'idPosition' => (int) $idPosition,
+            'idName' => $idName,
+            'domainPosition' => $domainPosition,
+            'domainName' => $domainName,
+        ];
+    }
+
+    /**
+     * Finds an argument of a method by its position or its name.
+     *
+     * @param list<\ReflectionParameter> $parameters
+     * @return array{int|null, string|null} Its position and its name.
+     */
+    private function argument(MessageMethod $method, array $parameters, int|string $argument): array
+    {
+        foreach ($parameters as $parameter) {
+            if ($parameter->getPosition() === $argument || $parameter->getName() === $argument) {
+                return [$parameter->getPosition(), $parameter->getName()];
+            }
+        }
+
+        throw new InvalidArgumentException([
+            'The method {class}::{method} has no argument {argument}.',
+            'class' => $method->class,
+            'method' => $method->method,
+            'argument' => (string) $argument,
+        ]);
     }
 }

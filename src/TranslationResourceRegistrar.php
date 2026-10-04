@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Translation;
 
 use Derafu\Translation\Contract\TranslationResourceProviderInterface;
-use InvalidArgumentException;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Symfony\Component\Translation\Translator;
 
 /**
@@ -75,9 +75,10 @@ final class TranslationResourceRegistrar
     public function registerDirectory(string $directory): void
     {
         if (!is_dir($directory)) {
-            throw new InvalidArgumentException(
-                sprintf('Translation directory "%s" does not exist.', $directory)
-            );
+            throw new InvalidArgumentException([
+                'Translation directory "{directory}" does not exist.',
+                'directory' => $directory,
+            ]);
         }
 
         $files = glob(rtrim($directory, '/') . '/*.*') ?: [];
@@ -142,10 +143,10 @@ final class TranslationResourceRegistrar
         $parts = explode('.', basename($file));
 
         if (count($parts) < 3) {
-            throw new InvalidArgumentException(sprintf(
-                'Translation file "%s" does not follow the "domain.locale.format" naming convention.',
-                $file
-            ));
+            throw new InvalidArgumentException([
+                'Translation file "{file}" does not follow the "domain.locale.format" naming convention.',
+                'file' => $file,
+            ]);
         }
 
         $extension = strtolower(array_pop($parts));
@@ -153,12 +154,12 @@ final class TranslationResourceRegistrar
         $domain = implode('.', $parts);
 
         if (!isset(self::EXTENSION_FORMATS[$extension])) {
-            throw new InvalidArgumentException(sprintf(
-                'Unrecognized translation file extension "%s" for file "%s". Supported extensions: %s.',
-                $extension,
-                $file,
-                implode(', ', array_keys(self::EXTENSION_FORMATS))
-            ));
+            throw new InvalidArgumentException([
+                'Unrecognized translation file extension "{extension}" for file "{file}". Supported extensions: {supported}.',
+                'extension' => $extension,
+                'file' => $file,
+                'supported' => implode(', ', array_keys(self::EXTENSION_FORMATS)),
+            ]);
         }
 
         $this->translator->addResource(

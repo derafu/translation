@@ -30,14 +30,38 @@ final readonly class MessageReference
      * translatable exception or `TranslatableMessage`.
      * @param string $file The file where the message was found.
      * @param int $line The line where the message was found.
+     * @param string|null $function The function that has the message: a method
+     * (`Class::method`), a function, or a closure inside of one
+     * (`Class::method::{closure}`). `null` when it is not inside a function.
+     * @param string|null $expression The whole call that has the message, when
+     * the message (or its domain) is not a literal and so it can not be read:
+     * `new X($message)`, `$this->trans($id)`. It is the whole call, so it only
+     * changes when that code does.
      */
     public function __construct(
         public ?string $id,
         public ?string $domain,
         public string $class,
         public string $file,
-        public int $line
+        public int $line,
+        public ?string $function = null,
+        public ?string $expression = null
     ) {
+    }
+
+    /**
+     * What tells a message that can not be checked from any other: the function
+     * that has it and the whole call. It does not change when other lines of the
+     * file do, it changes when that code does, and two different messages of the
+     * same file have different ones, so a test can say exactly which are expected.
+     */
+    public function identity(): string
+    {
+        return sprintf(
+            '%s: %s',
+            $this->function ?? '(outside of a function)',
+            $this->expression ?? (string) $this->id
+        );
     }
 
     /**

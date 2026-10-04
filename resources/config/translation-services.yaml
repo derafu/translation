@@ -34,3 +34,9 @@
 # service id, adjust this alias's target accordingly.
 services:
     Symfony\Contracts\Translation\TranslatorInterface: '@Symfony\Component\Translation\Translator'
+
+    # Feeds the translations of this package (the messages of its errors) into
+    # the Translator. The tag is explicit because _instanceof does not propagate
+    # across imported files.
+    Derafu\Translation\Translation\TranslationResourceProvider:
+        tags: ['derafu_translation.resource_provider']

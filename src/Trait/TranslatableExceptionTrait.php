@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Derafu\Translation\Trait;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Derafu\Translation\TranslatableMessage;
-use InvalidArgumentException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
 
