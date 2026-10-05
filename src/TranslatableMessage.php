@@ -12,9 +12,11 @@ declare(strict_types=1);
 
 namespace Derafu\Translation;
 
+use Derafu\Translation\Contract\TranslatableAwareInterface;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\Contract\TranslatableMessageInterface;
 use IntlException;
+use JsonSerializable;
 use MessageFormatter;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -143,6 +145,45 @@ final class TranslatableMessage implements TranslatableMessageInterface
     public function getDefaultLocale(): ?string
     {
         return $this->defaultLocale;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * A parameter that is a translatable value is exported as its own data (a
+     * message inside the message), and any other throwable as its message: an
+     * exception is not data, and `json_encode()` would make it an empty object.
+     * What is not JSON stays as `json_encode()` makes it, so a date, an object or
+     * a resource does not come back as it was: it is not a format to rebuild the
+     * message from.
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'message' => $this->message,
+            'parameters' => array_map(
+                fn (mixed $value) => $this->exportParameter($value),
+                $this->parameters
+            ),
+            'domain' => $this->domain,
+            'defaultLocale' => $this->defaultLocale,
+        ];
+    }
+
+    /**
+     * A parameter as data.
+     */
+    private function exportParameter(mixed $value): mixed
+    {
+        if ($value instanceof TranslatableAwareInterface) {
+            $translatable = $value->getTranslatable();
+
+            if ($translatable instanceof JsonSerializable) {
+                return $translatable;
+            }
+        }
+
+        return $value instanceof Throwable ? $value->getMessage() : $value;
     }
 
     /**

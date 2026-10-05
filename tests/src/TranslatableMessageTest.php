@@ -12,15 +12,24 @@ declare(strict_types=1);
 
 namespace Derafu\TestsTranslation;
 
+use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\Contract\TranslatableMessageInterface;
+use Derafu\Translation\Exception\Core\TranslatableRuntimeException;
+use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use Derafu\Translation\TranslatableMessage;
+use JsonSerializable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesTrait;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Translation\Loader\ArrayLoader;
 use Symfony\Component\Translation\Translator;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[CoversClass(TranslatableMessage::class)]
+#[UsesClass(TranslatableRuntimeException::class)]
+#[UsesTrait(TranslatableExceptionTrait::class)]
 final class TranslatableMessageTest extends TestCase
 {
     public function testBasicIcuMessage(): void
@@ -220,5 +229,108 @@ final class TranslatableMessageTest extends TestCase
         $this->assertSame([], $message->getParameters());
         $this->assertNull($message->getDomain());
         $this->assertNull($message->getDefaultLocale());
+    }
+
+    public function testTheMessageIsEncodedAsItsData(): void
+    {
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'Ana'], 'auth', 'es');
+
+        $this->assertInstanceOf(JsonSerializable::class, $message);
+        $this->assertSame(
+            '{"message":"Hello {name}","parameters":{"name":"Ana"},"domain":"auth","defaultLocale":"es"}',
+            json_encode($message)
+        );
+    }
+
+    /**
+     * What a store that keeps JSON gives back (the session of Mezzio, for
+     * example) has the names of the getters, so a view can translate from it.
+     */
+    public function testWhatAJsonStoreGivesBackHasTheNamesOfTheGetters(): void
+    {
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'Ana'], 'auth');
+
+        $stored = json_decode((string) json_encode($message), true);
+
+        $this->assertSame(
+            [
+                'message' => $message->getMessage(),
+                'parameters' => $message->getParameters(),
+                'domain' => $message->getDomain(),
+                'defaultLocale' => $message->getDefaultLocale(),
+            ],
+            $stored
+        );
+    }
+
+    public function testADomainAndALocaleThatWereNotGivenAreNullInTheData(): void
+    {
+        $this->assertSame(
+            ['message' => 'Hello', 'parameters' => [], 'domain' => null, 'defaultLocale' => null],
+            (new TranslatableMessage('Hello'))->jsonSerialize()
+        );
+    }
+
+    public function testAMessageInsideTheMessageIsExportedAsItsOwnData(): void
+    {
+        $message = new TranslatableMessage(
+            'Component {component}: {message}',
+            ['component' => 'accordion', 'message' => new TranslatableMessage('Item title is required.', [], 'errors')]
+        );
+
+        $this->assertSame(
+            [
+                'component' => 'accordion',
+                'message' => [
+                    'message' => 'Item title is required.',
+                    'parameters' => [],
+                    'domain' => 'errors',
+                    'defaultLocale' => null,
+                ],
+            ],
+            json_decode((string) json_encode($message), true)['parameters']
+        );
+    }
+
+    public function testATranslatableExceptionInsideTheMessageIsExportedAsItsMessageData(): void
+    {
+        $inner = new TranslatableRuntimeException(['Cannot read {file}.', 'file' => 'a.txt']);
+        $message = new TranslatableMessage('Failed: {reason}', ['reason' => $inner]);
+
+        $this->assertSame(
+            ['reason' => ['message' => 'Cannot read {file}.', 'parameters' => ['file' => 'a.txt'], 'domain' => 'errors', 'defaultLocale' => null]],
+            json_decode((string) json_encode($message), true)['parameters']
+        );
+    }
+
+    public function testATranslatableExceptionThatIsNotAMessageIsExportedAsItsText(): void
+    {
+        $custom = new class () implements TranslatableInterface {
+            public function trans(\Symfony\Contracts\Translation\TranslatorInterface $translator, ?string $locale = null): string
+            {
+                return 'translated';
+            }
+
+            public function __toString(): string
+            {
+                return 'Custom text.';
+            }
+        };
+        $inner = new TranslatableRuntimeException($custom);
+
+        $this->assertSame(
+            ['reason' => 'Custom text.'],
+            json_decode((string) json_encode(new TranslatableMessage('Failed: {reason}', ['reason' => $inner])), true)['parameters']
+        );
+    }
+
+    public function testAnExceptionThatIsNotTranslatableInsideTheMessageIsExportedAsItsText(): void
+    {
+        $message = new TranslatableMessage('Failed: {reason}', ['reason' => new RuntimeException('The disk is full.')]);
+
+        $this->assertSame(
+            ['reason' => 'The disk is full.'],
+            json_decode((string) json_encode($message), true)['parameters']
+        );
     }
 }
