@@ -14,12 +14,13 @@ namespace Derafu\Translation\Exception\Logic;
 
 use BadMethodCallException;
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 
 /**
  * Translatable version of BadMethodCallException.
  */
-class TranslatableBadMethodCallException extends BadMethodCallException implements TranslatableInterface
+class TranslatableBadMethodCallException extends BadMethodCallException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

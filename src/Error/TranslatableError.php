@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Translation\Error;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use Error;
 
@@ -21,7 +22,7 @@ use Error;
  *
  * It is not an `Exception`: it is not caught by `catch (Exception)`.
  */
-class TranslatableError extends Error implements TranslatableInterface
+class TranslatableError extends Error implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Runtime;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use RangeException;
 
 /**
  * Translatable version of RangeException.
  */
-class TranslatableRangeException extends RangeException implements TranslatableInterface
+class TranslatableRangeException extends RangeException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

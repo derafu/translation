@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsTranslation;
 
+use Derafu\Translation\Contract\TranslatableMessageInterface;
 use Derafu\Translation\TranslatableMessage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -199,5 +200,25 @@ final class TranslatableMessageTest extends TestCase
         $message = new TranslatableMessage('Hello {name}', ['name' => 'John']);
 
         $this->assertSame('Hola John', $message->trans($translator));
+    }
+
+    public function testTheMessageCanBeRead(): void
+    {
+        $message = new TranslatableMessage('Hello {name}', ['name' => 'John'], 'greetings', 'es');
+
+        $this->assertInstanceOf(TranslatableMessageInterface::class, $message);
+        $this->assertSame('Hello {name}', $message->getMessage());
+        $this->assertSame(['name' => 'John'], $message->getParameters());
+        $this->assertSame('greetings', $message->getDomain());
+        $this->assertSame('es', $message->getDefaultLocale());
+    }
+
+    public function testTheDomainAndTheLocaleThatWereNotGivenAreNull(): void
+    {
+        $message = new TranslatableMessage('Hello');
+
+        $this->assertSame([], $message->getParameters());
+        $this->assertNull($message->getDomain());
+        $this->assertNull($message->getDefaultLocale());
     }
 }

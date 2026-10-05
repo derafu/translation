@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Translation\Error;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use TypeError;
 
@@ -20,7 +21,7 @@ use TypeError;
  * Translatable version of TypeError.
 
  */
-class TranslatableTypeError extends TypeError implements TranslatableInterface
+class TranslatableTypeError extends TypeError implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

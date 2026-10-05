@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Runtime;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use UnexpectedValueException;
 
 /**
  * Translatable version of UnexpectedValueException.
  */
-class TranslatableUnexpectedValueException extends UnexpectedValueException implements TranslatableInterface
+class TranslatableUnexpectedValueException extends UnexpectedValueException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

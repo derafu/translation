@@ -18,6 +18,7 @@ use Derafu\Translation\TranslatableMessage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesTrait;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Translation\Loader\ArrayLoader;
 use Symfony\Component\Translation\Translator;
 
@@ -110,5 +111,65 @@ final class NestedMessageTest extends TestCase
             'No se pudo leer el certificado. Ocurrió un problema: error:0909006C',
             $exception->trans($translator)
         );
+    }
+
+    private function inner(): TranslatableException
+    {
+        return new TranslatableException(['Cannot read {file}.', 'file' => 'a.txt']);
+    }
+
+    /**
+     * A translatable exception can be the parameter of a message, to say why
+     * something failed. Its text is its message, never the dump that PHP makes of
+     * an exception (class, file, line and trace).
+     */
+    public function testAnExceptionAsAParameterIsItsMessage(): void
+    {
+        $outer = new TranslatableException(['Failed to load: {message}', 'message' => $this->inner()]);
+
+        $this->assertSame('Failed to load: Cannot read a.txt.', $outer->getMessage());
+        $this->assertSame(
+            'Failed to load: Cannot read a.txt.',
+            (string) new TranslatableMessage('Failed to load: {message}', ['message' => $this->inner()])
+        );
+    }
+
+    public function testAnExceptionAsAParameterIsTranslatedWhenTheTranslatorHasItsEntry(): void
+    {
+        $outer = new TranslatableException(['Failed to load: {message}', 'message' => $this->inner()]);
+        $translator = $this->translator([
+            'Failed to load: {message}' => 'No se pudo cargar: {message}',
+            'Cannot read {file}.' => 'No se puede leer {file}.',
+        ]);
+
+        $this->assertSame('No se pudo cargar: No se puede leer a.txt.', $outer->trans($translator));
+    }
+
+    public function testAnExceptionAsAParameterIsItsMessageWhenTheTranslatorHasNoEntryForIt(): void
+    {
+        $outer = new TranslatableException(['Failed to load: {message}', 'message' => $this->inner()]);
+        $translator = $this->translator(['Failed to load: {message}' => 'No se pudo cargar: {message}']);
+
+        $this->assertSame('No se pudo cargar: Cannot read a.txt.', $outer->trans($translator));
+    }
+
+    public function testAnExceptionThatIsNotTranslatableAsAParameterIsItsMessage(): void
+    {
+        $message = new TranslatableMessage(
+            'A problem happened: {message}',
+            ['message' => new RuntimeException('The disk is full.')],
+            'errors'
+        );
+        $translator = $this->translator(['A problem happened: {message}' => 'Ocurrió un problema: {message}']);
+
+        $this->assertSame('A problem happened: The disk is full.', (string) $message);
+        $this->assertSame('Ocurrió un problema: The disk is full.', $message->trans($translator));
+    }
+
+    public function testAnExceptionGivenAsTheMessageOfAnotherIsItsMessage(): void
+    {
+        $outer = new TranslatableException($this->inner());
+
+        $this->assertSame('Cannot read a.txt.', $outer->getMessage());
     }
 }

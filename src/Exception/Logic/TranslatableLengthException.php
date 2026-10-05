@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Logic;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use LengthException;
 
 /**
  * Translatable version of LengthException.
  */
-class TranslatableLengthException extends LengthException implements TranslatableInterface
+class TranslatableLengthException extends LengthException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

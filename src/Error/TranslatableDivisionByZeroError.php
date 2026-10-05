@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Error;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use DivisionByZeroError;
 
 /**
  * Translatable version of DivisionByZeroError.
  */
-class TranslatableDivisionByZeroError extends DivisionByZeroError implements TranslatableInterface
+class TranslatableDivisionByZeroError extends DivisionByZeroError implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

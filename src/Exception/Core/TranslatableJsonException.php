@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Core;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use JsonException;
 
 /**
  * Translatable version of JsonException.
  */
-class TranslatableJsonException extends JsonException implements TranslatableInterface
+class TranslatableJsonException extends JsonException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

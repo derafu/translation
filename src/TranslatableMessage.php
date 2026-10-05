@@ -13,19 +13,21 @@ declare(strict_types=1);
 namespace Derafu\Translation;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageInterface;
 use IntlException;
 use MessageFormatter;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Throwable;
 
 /**
  * A translatable message that supports ICU message formatting.
  *
- * This class implements TranslatableInterface to provide a message that can be
- * translated using a translator or fallback to ICU formatting when no
+ * This class implements TranslatableMessageInterface to provide a message that
+ * can be translated using a translator or fallback to ICU formatting when no
  * translator is available.
  */
-final class TranslatableMessage implements TranslatableInterface
+final class TranslatableMessage implements TranslatableMessageInterface
 {
     /**
      * Creates a new translatable message.
@@ -77,7 +79,7 @@ final class TranslatableMessage implements TranslatableInterface
 
         return $translator->trans(
             $this->message,
-            $this->parameters,
+            $this->normalizeParameters(false),
             $this->domain,
             $locale
         );
@@ -101,7 +103,7 @@ final class TranslatableMessage implements TranslatableInterface
             return $this->message;
         }
 
-        $result = $formatter->format($this->parameters);
+        $result = $formatter->format($this->normalizeParameters(true));
 
         if ($result === false) {
             // Log error if needed: intl_get_error_message().
@@ -109,5 +111,62 @@ final class TranslatableMessage implements TranslatableInterface
         }
 
         return $result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getMessage(): string
+    {
+        return $this->message;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getParameters(): array
+    {
+        return $this->parameters;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getDomain(): ?string
+    {
+        return $this->domain;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getDefaultLocale(): ?string
+    {
+        return $this->defaultLocale;
+    }
+
+    /**
+     * The parameters as they are given to the translator or to ICU.
+     *
+     * A throwable is turned into its message: to a string it would be the dump
+     * of PHP (class, file, line and trace), which is not a text for a person.
+     * A translatable throwable is left as it is when a translator is going to
+     * translate the message, because the translator translates it too (it is a
+     * message nested in this one); without a translator its message is what is
+     * formatted.
+     *
+     * @param bool $withoutTranslator Whether the message is formatted without a
+     * translator.
+     * @return array<string, mixed>
+     */
+    private function normalizeParameters(bool $withoutTranslator): array
+    {
+        return array_map(
+            fn (mixed $value) => $value instanceof Throwable
+                && ($withoutTranslator || !$value instanceof TranslatableInterface)
+                ? $value->getMessage()
+                : $value,
+            $this->parameters
+        );
     }
 }

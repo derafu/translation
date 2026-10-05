@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Error;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use ValueError;
 
 /**
  * Translatable version of ValueError.
  */
-class TranslatableValueError extends ValueError implements TranslatableInterface
+class TranslatableValueError extends ValueError implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

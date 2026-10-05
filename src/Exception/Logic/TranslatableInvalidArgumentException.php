@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Logic;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use InvalidArgumentException;
 
 /**
  * Translatable version of InvalidArgumentException.
  */
-class TranslatableInvalidArgumentException extends InvalidArgumentException implements TranslatableInterface
+class TranslatableInvalidArgumentException extends InvalidArgumentException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

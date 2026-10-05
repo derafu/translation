@@ -34,4 +34,6 @@ return [
         'El archivo {file} no existe.',
     'The directory {directory} does not exist.' =>
         'El directorio {directory} no existe.',
+    'The translatable value of the exception {class} is not a message: it is a {type}.' =>
+        'El valor traducible de la excepción {class} no es un mensaje: es un {type}.',
 ];

@@ -13,6 +13,8 @@ declare(strict_types=1);
 namespace Derafu\Translation\Trait;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageInterface;
+use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Derafu\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -52,9 +54,11 @@ trait TranslatableExceptionTrait
     protected ?string $defaultLocale = null;
 
     /**
-     * The translatable message instance.
+     * The translatable value of the exception: what it translates with. It is a
+     * `TranslatableMessage` when the exception is made from a string or an
+     * array, and what was given when it is made from a `TranslatableInterface`.
      */
-    protected TranslatableInterface $translatableMessage;
+    protected TranslatableInterface $translatable;
 
     /**
      * Creates a new exception with translation support.
@@ -92,7 +96,7 @@ trait TranslatableExceptionTrait
         TranslatorInterface $translator,
         ?string $locale = null
     ): string {
-        return $this->translatableMessage->trans(
+        return $this->translatable->trans(
             $translator,
             $locale ?? $this->defaultLocale
         );
@@ -116,7 +120,7 @@ trait TranslatableExceptionTrait
             'previous'            => $this->getPrevious(),
             'defaultDomain'       => $this->defaultDomain,
             'defaultLocale'       => $this->defaultLocale,
-            'translatableMessage' => $this->translatableMessage,
+            'translatable'        => $this->translatable,
         ];
     }
 
@@ -133,7 +137,9 @@ trait TranslatableExceptionTrait
         $this->line                = $data['line'];
         $this->defaultDomain       = $data['defaultDomain'];
         $this->defaultLocale       = $data['defaultLocale'];
-        $this->translatableMessage = $data['translatableMessage'];
+        // The key of the data that was serialized before it was renamed is
+        // accepted, so an exception stored in a session still can be read.
+        $this->translatable = $data['translatable'] ?? $data['translatableMessage'];
     }
 
     /**
@@ -157,23 +163,56 @@ trait TranslatableExceptionTrait
                     'First element of message array must be a string.'
                 );
             }
-            $this->translatableMessage = new TranslatableMessage(
+            $this->translatable = new TranslatableMessage(
                 $msg,
                 $message,
                 $this->defaultDomain,
                 $this->defaultLocale
             );
         } elseif (is_string($message)) {
-            $this->translatableMessage = new TranslatableMessage(
+            $this->translatable = new TranslatableMessage(
                 $message,
                 [],
                 $this->defaultDomain,
                 $this->defaultLocale
             );
         } else {
-            $this->translatableMessage = $message;
+            $this->translatable = $message;
         }
 
-        return (string) $this->translatableMessage;
+        return $this->translatable instanceof Throwable
+            ? $this->translatable->getMessage()
+            : (string) $this->translatable;
+    }
+
+    /**
+     * The translatable value of the exception.
+     *
+     * It can be carried without the exception (a flash message in a session, a
+     * record in a queue), which an exception can not do without its trace.
+     */
+    public function getTranslatable(): TranslatableInterface
+    {
+        return $this->translatable;
+    }
+
+    /**
+     * The translatable value of the exception, as a message that can be read:
+     * its id, its parameters and its domain.
+     *
+     * @throws LogicException If the exception was made from a translatable value
+     * that is not a message.
+     */
+    public function getTranslatableMessage(): TranslatableMessageInterface
+    {
+        if (!$this->translatable instanceof TranslatableMessageInterface) {
+            throw new LogicException([
+                'The translatable value of the exception {class} is not a message: it is a {type}.',
+                'class' => static::class,
+                'type' => $this->translatable::class,
+            ]);
+        }
+
+        return $this->translatable;
     }
 }

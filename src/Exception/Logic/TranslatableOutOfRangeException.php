@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Logic;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use OutOfRangeException;
 
 /**
  * Translatable version of OutOfRangeException.
  */
-class TranslatableOutOfRangeException extends OutOfRangeException implements TranslatableInterface
+class TranslatableOutOfRangeException extends OutOfRangeException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

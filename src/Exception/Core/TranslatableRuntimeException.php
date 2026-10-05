@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Translation\Exception\Core;
 
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use RuntimeException;
 
 /**
  * Translatable version of RuntimeException.
  */
-class TranslatableRuntimeException extends RuntimeException implements TranslatableInterface
+class TranslatableRuntimeException extends RuntimeException implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }

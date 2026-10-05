@@ -14,12 +14,13 @@ namespace Derafu\Translation\Error;
 
 use ArithmeticError;
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Contract\TranslatableMessageAwareInterface;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 
 /**
  * Translatable version of ArithmeticError.
  */
-class TranslatableArithmeticError extends ArithmeticError implements TranslatableInterface
+class TranslatableArithmeticError extends ArithmeticError implements TranslatableInterface, TranslatableMessageAwareInterface
 {
     use TranslatableExceptionTrait;
 }
