@@ -28,6 +28,7 @@ use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Catch_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Function_;
@@ -63,6 +64,15 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      * @var list<class-string|null>
      */
     private array $classes = [];
+
+    /**
+     * The variables of the `catch` clauses being read, from the outer to the
+     * inner one, and whether every type that they catch is a translatable
+     * exception.
+     *
+     * @var list<array{name: string|null, translatable: bool}>
+     */
+    private array $catches = [];
 
     /**
      * Names of the parameters of the constructors being read.
@@ -124,6 +134,8 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             $this->scopes[] = $node->namespacedName?->toString() ?? 'class@anonymous';
         } elseif ($node instanceof Function_) {
             $this->functions[] = $node->namespacedName?->toString() ?? $node->name->toString();
+        } elseif ($node instanceof Catch_) {
+            $this->catches[] = $this->catchOf($node);
         } elseif ($node instanceof Closure || $node instanceof ArrowFunction) {
             $this->functions[] = ($this->currentFunction() ?? '') === ''
                 ? '{closure}'
@@ -158,6 +170,8 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
         if ($node instanceof Class_ || $node instanceof Trait_) {
             array_pop($this->classes);
             array_pop($this->scopes);
+        } elseif ($node instanceof Catch_) {
+            array_pop($this->catches);
         } elseif ($node instanceof Function_ || $node instanceof Closure || $node instanceof ArrowFunction) {
             array_pop($this->functions);
         } elseif ($node instanceof ClassMethod) {
@@ -331,6 +345,45 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
         $this->collectMessage($node, $argument, $class, $this->domainOf($class));
     }
 
+    /**
+     * The variable of a `catch` clause and whether it only catches translatable
+     * exceptions (`catch (A | B $e)`: both must be).
+     *
+     * @return array{name: string|null, translatable: bool}
+     */
+    private function catchOf(Catch_ $node): array
+    {
+        $name = $node->var !== null && is_string($node->var->name) ? $node->var->name : null;
+
+        $translatable = $name !== null;
+        foreach ($node->types as $type) {
+            $class = $this->className($type->toString());
+            $translatable = $translatable && $class !== null && $this->isTranslatable($class);
+        }
+
+        return ['name' => $name, 'translatable' => $translatable];
+    }
+
+    /**
+     * Whether the variable is the one of the `catch` clause that is being read
+     * (the innermost that has that name), and that clause only catches
+     * translatable exceptions.
+     */
+    private function isCaughtTranslatable(Variable $variable): bool
+    {
+        if (!is_string($variable->name)) {
+            return false;
+        }
+
+        foreach (array_reverse($this->catches) as $catch) {
+            if ($catch['name'] === $variable->name) {
+                return $catch['translatable'];
+            }
+        }
+
+        return false;
+    }
+
     private function isPassedOn(Arg $argument): bool
     {
         $parameters = $this->constructorParameters === [] ? [] : $this->constructorParameters[array_key_last($this->constructorParameters)];
@@ -410,6 +463,12 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
         // A message that is already a translatable message is found on its
         // own, where it is built.
         if ($value instanceof New_) {
+            return;
+        }
+
+        // A translatable exception that was caught is passed on: its message is
+        // found where it was thrown, so it is not a new one.
+        if ($value instanceof Variable && $this->isCaughtTranslatable($value)) {
             return;
         }
 

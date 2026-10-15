@@ -613,6 +613,159 @@ final class MessageReferenceScannerTest extends TestCase
         $this->assertTrue($references[0]->isDynamic());
     }
 
+    /**
+     * A translatable exception that was caught and is passed on has its message
+     * where it was thrown, so it is not a new (dynamic) message.
+     */
+    public function testACaughtTranslatableExceptionThatIsPassedOnIsNotAReference(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException $e) {
+                throw new TranslatableException($e, previous: $e);
+            }
+            PHP);
+
+        $this->assertSame([], $references);
+    }
+
+    public function testItAlsoPassesOnWhatIsCaughtByAnAliasAndByASubclass(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (InvalidArgumentException $e) {
+                throw new TranslatableException($e);
+            } catch (FixtureDefaultMessageException $e) {
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        $this->assertSame([], $references);
+    }
+
+    public function testEveryTypeThatIsCaughtMustBeTranslatable(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException | RuntimeException $e) {
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testACaughtExceptionThatIsNotTranslatableIsStillDynamic(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (RuntimeException $e) {
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testACaughtClassThatCanNotBeLoadedIsStillDynamic(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (\Not\Installed\Exception $e) {
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testAnotherVariableInsideACatchIsStillDynamic(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException $e) {
+                throw new TranslatableException($other);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testAVariableVariableIsStillDynamic(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException $e) {
+                throw new TranslatableException($$e);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testACatchWithoutVariableHasNothingToPassOn(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException) {
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testTheVariableIsNotPassedOnOutsideTheCatch(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException $e) {
+            }
+            throw new TranslatableException($e);
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    /**
+     * The variable is the one of the innermost `catch` that has that name.
+     */
+    public function testACatchInsideAnotherOneWithTheSameVariableHidesIt(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            try {
+                doSomething();
+            } catch (TranslatableException $e) {
+                try {
+                    doSomethingElse();
+                } catch (RuntimeException $e) {
+                    throw new TranslatableException($e);
+                }
+                throw new TranslatableException($e);
+            }
+            PHP);
+
+        // The inner `$e` is not translatable; after it ends, the outer one is.
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
     public function testItScansEveryPhpFileOfADirectoryInOrder(): void
     {
         $directory = $this->directory();
