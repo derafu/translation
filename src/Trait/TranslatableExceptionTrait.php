@@ -16,6 +16,7 @@ use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\Contract\TranslatableMessageInterface;
 use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
+use Derafu\Translation\Exception\Runtime\TranslatableUnexpectedValueException as UnexpectedValueException;
 use Derafu\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
@@ -63,16 +64,16 @@ trait TranslatableExceptionTrait
     /**
      * Creates a new exception with translation support.
      *
-     * @param string|array|TranslatableInterface $message The exception message:
+     * @param string|array<int|string, mixed>|TranslatableInterface $message The exception message:
      *   - string: Will be used as both message and translation key.
-     *   - array: First element must be string (message), remaining elements are
-     *     parameters.
+     *   - array: The element 0 must be a string (the message), the remaining
+     *     elements are the parameters and must have a name (a string key).
      *   - TranslatableInterface: Will be used directly.
      * @param int $code The exception code.
      * @param Throwable|null $previous The previous throwable used for exception
      * chaining.
-     * @throws InvalidArgumentException When an empty array is provided or first
-     * array element is not string.
+     * @throws InvalidArgumentException When an empty array is provided, the element
+     * 0 is not a string or a parameter has no name.
      */
     public function __construct(
         string|array|TranslatableInterface $message,
@@ -128,25 +129,59 @@ trait TranslatableExceptionTrait
      * Restores the exception state from serialized data.
      *
      * @param array<string, mixed> $data
+     * @throws UnexpectedValueException If the data is not what the exception
+     * serializes. It never is for data that the exception itself serialized: it
+     * is for data that was changed, damaged or made by another class.
      */
     public function __unserialize(array $data): void
     {
-        $this->message             = $data['message'];
-        $this->code                = $data['code'];
-        $this->file                = $data['file'];
-        $this->line                = $data['line'];
-        $this->defaultDomain       = $data['defaultDomain'];
-        $this->defaultLocale       = $data['defaultLocale'];
         // The key of the data that was serialized before it was renamed is
         // accepted, so an exception stored in a session still can be read.
-        $this->translatable = $data['translatable'] ?? $data['translatableMessage'];
+        $translatable = $data['translatable'] ?? $data['translatableMessage'] ?? null;
+        $message = $data['message'] ?? null;
+        $code = $data['code'] ?? null;
+        $file = $data['file'] ?? null;
+        $line = $data['line'] ?? null;
+        $defaultDomain = $data['defaultDomain'] ?? null;
+        $defaultLocale = $data['defaultLocale'] ?? null;
+
+        is_string($message) || $this->invalidSerializedData('message');
+        is_int($code) || $this->invalidSerializedData('code');
+        is_string($file) || $this->invalidSerializedData('file');
+        is_int($line) || $this->invalidSerializedData('line');
+        is_string($defaultDomain) || $this->invalidSerializedData('defaultDomain');
+        $defaultLocale === null || is_string($defaultLocale) || $this->invalidSerializedData('defaultLocale');
+        $translatable instanceof TranslatableInterface || $this->invalidSerializedData('translatable');
+
+        $this->message = $message;
+        $this->code = $code;
+        $this->file = $file;
+        $this->line = $line;
+        $this->defaultDomain = $defaultDomain;
+        $this->defaultLocale = $defaultLocale;
+        $this->translatable = $translatable;
+    }
+
+    /**
+     * Rejects serialized data that is not what the exception serializes.
+     *
+     * @param string $key The first key whose value is not valid.
+     * @throws UnexpectedValueException Always.
+     */
+    private function invalidSerializedData(string $key): never
+    {
+        throw new UnexpectedValueException([
+            'The serialized data of the exception {class} is not valid in {key}.',
+            'class' => static::class,
+            'key' => $key,
+        ]);
     }
 
     /**
      * Normalize the $message into a TranslatableMessage and return the default
      * string for the exception.
      *
-     * @param string|array|TranslatableInterface $message
+     * @param string|array<int|string, mixed>|TranslatableInterface $message
      * @return string
      */
     protected function normalizeMessage(string|array|TranslatableInterface $message): string
@@ -157,15 +192,25 @@ trait TranslatableExceptionTrait
                     'Message array cannot be empty.'
                 );
             }
-            $msg = array_shift($message);
+            $msg = $message[0] ?? null;
             if (!is_string($msg)) {
                 throw new InvalidArgumentException(
                     'First element of message array must be a string.'
                 );
             }
+            unset($message[0]);
+            $parameters = [];
+            foreach ($message as $name => $value) {
+                if (!is_string($name)) {
+                    throw new InvalidArgumentException(
+                        'The parameters of the message array must have a name.'
+                    );
+                }
+                $parameters[$name] = $value;
+            }
             $this->translatable = new TranslatableMessage(
                 $msg,
-                $message,
+                $parameters,
                 $this->defaultDomain,
                 $this->defaultLocale
             );

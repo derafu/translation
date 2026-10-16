@@ -77,6 +77,14 @@ final class TranslatableErrorsTest extends TestCase
                 fn () => new TranslatableException([123, 'param' => 'value']),
                 'First element of message array must be a string.',
             ],
+            'message without the key 0' => [
+                fn () => new TranslatableException(['param' => 'value']),
+                'First element of message array must be a string.',
+            ],
+            'parameter without a name' => [
+                fn () => new TranslatableException(['Message {0}', 'value']),
+                'The parameters of the message array must have a name.',
+            ],
         ];
     }
 
@@ -142,6 +150,10 @@ final class TranslatableErrorsTest extends TestCase
             'message whose first element is not a string' => [
                 fn () => new TranslatableException([123]),
                 'El primer elemento del arreglo del mensaje debe ser un string.',
+            ],
+            'parameter without a name' => [
+                fn () => new TranslatableException(['Message {0}', 'value']),
+                'Los parámetros del arreglo del mensaje deben tener un nombre.',
             ],
             'message scanner, file' => [
                 fn () => (new MessageReferenceScanner())->scanFile('/nonexistent/file.php'),

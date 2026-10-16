@@ -121,6 +121,19 @@ final class MessageReferenceScannerTest extends TestCase
         return array_map(fn (MessageReference $r) => [$r->id, $r->domain], $references);
     }
 
+    /**
+     * Scans code written in a temporary file as it is, outside of a function.
+     *
+     * @return list<MessageReference>
+     */
+    private function scanSource(string $code): array
+    {
+        $file = $this->directory() . '/source.php';
+        file_put_contents($file, "<?php\n\nnamespace Scanned;\n\n" . $code);
+
+        return (new MessageReferenceScanner())->scanFile($file);
+    }
+
     public function testItFindsTheMessageOfATranslatableException(): void
     {
         $references = $this->scan("throw new TranslatableException('Something failed.');");
@@ -308,7 +321,7 @@ final class MessageReferenceScannerTest extends TestCase
         $this->assertSame(
             [
                 'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
-                    . 'new \\Derafu\\Translation\\TranslatableMessage($msg, $message, $this->defaultDomain, $this->defaultLocale)',
+                    . 'new \\Derafu\\Translation\\TranslatableMessage($msg, $parameters, $this->defaultDomain, $this->defaultLocale)',
                 'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
                     . 'new \\Derafu\\Translation\\TranslatableMessage($message, [], $this->defaultDomain, $this->defaultLocale)',
             ],
@@ -438,6 +451,50 @@ final class MessageReferenceScannerTest extends TestCase
         $this->assertSame([], $this->scan("throw new \\Not\\Installed\\SomeException('Unknown.');"));
     }
 
+    public function testAClosureOutsideOfAFunctionIsJustAClosure(): void
+    {
+        $references = $this->scanSource(
+            '$f = function ($m) { throw new \\Derafu\\Translation\\Exception\\Core\\TranslatableException($m); };'
+        );
+
+        $this->assertSame('{closure}', $references[0]->function);
+    }
+
+    public function testAClassThatIsAVariableIsNotAReference(): void
+    {
+        $this->assertSame([], $this->scan('$class = RuntimeException::class; throw new $class(\'Unknown.\');'));
+    }
+
+    public function testSelfOutsideOfAClassIsNotAReference(): void
+    {
+        $this->assertSame([], $this->scan("throw new self('Outside of a class.');"));
+    }
+
+    public function testANullDomainIsTheDefaultOne(): void
+    {
+        $references = $this->scan("new TranslatableMessage('Message.', [], null);");
+
+        $this->assertSame([['Message.', 'messages']], $this->idsAndDomains($references));
+    }
+
+    public function testAConstructorCalledAsACallableHasNoMessage(): void
+    {
+        $this->assertSame([], $this->scan('new TranslatableException(...);'));
+    }
+
+    /**
+     * A translatable exception that does not have the domain of the trait has no
+     * domain to be read: the message is found, the domain is not known.
+     */
+    public function testATranslatableClassWithoutADefaultDomainHasNoDomain(): void
+    {
+        $references = $this->scan(
+            "throw new \\Derafu\\TestsTranslation\\Lint\\Fixture\\FixtureNoDomainException('Without a domain.');"
+        );
+
+        $this->assertSame([['Without a domain.', null]], $this->idsAndDomains($references));
+    }
+
     public function testItIgnoresWhatOnlyLooksLikeANew(): void
     {
         $references = $this->scan(
@@ -548,6 +605,9 @@ final class MessageReferenceScannerTest extends TestCase
         $this->assertSame([['Anonymous.', 'errors']], $this->idsAndDomains($references));
     }
 
+    /**
+     * @return list<MessageReference>
+     */
     private function scanFixtures(): array
     {
         return (new MessageReferenceScanner())->scanDirectory(__DIR__ . '/Fixture');

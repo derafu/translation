@@ -35,6 +35,9 @@ use Symfony\Component\Translation\Translator;
 #[UsesTrait(TranslatableExceptionTrait::class)]
 final class NestedMessageTest extends TestCase
 {
+    /**
+     * @param array<string, string> $messages
+     */
     private function translator(array $messages): Translator
     {
         $translator = new Translator('es');

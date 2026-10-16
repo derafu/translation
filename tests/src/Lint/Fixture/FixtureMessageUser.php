@@ -33,10 +33,10 @@ class FixtureMessageUser extends FixtureMessageMethods
             parent::translate('Static with parent'),
             FixtureMessageMethods::translate('Static with the class'),
             $this->withDomain('chosen', 'With the domain first'),
-            $this->trans($variable),
+            $this->trans($variable), // @phpstan-ignore argument.type (the id is not a literal on purpose)
             $this->trans($flag ? 'First.' : 'Second.'),
             $this->trans(''),
-            $other->trans('Receiver that is not known'),
+            $other->trans('Receiver that is not known'), // @phpstan-ignore method.notFound (the receiver is not known on purpose)
             FixtureOtherTranslator::translate('Class that is not one of them'),
         ];
     }

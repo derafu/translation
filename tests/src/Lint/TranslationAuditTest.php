@@ -118,6 +118,9 @@ final class TranslationAuditTest extends TestCase
         return [$root . '/src', new SimpleTranslationResourceProvider([$root . '/translations'])];
     }
 
+    /**
+     * @param list<string> $allowed
+     */
     private function audit(string $source, SimpleTranslationResourceProvider $provider, array $allowed = []): TranslationAuditReport
     {
         return (new TranslationAudit())->audit($source, $provider, 'es', $allowed);

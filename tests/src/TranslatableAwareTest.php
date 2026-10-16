@@ -20,6 +20,7 @@ use Derafu\Translation\Error\TranslatableError;
 use Derafu\Translation\Exception\Core\TranslatableException;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
 use Derafu\Translation\Exception\Core\TranslatableRuntimeException;
+use Derafu\Translation\Exception\Runtime\TranslatableUnexpectedValueException;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use Derafu\Translation\TranslatableMessage;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -58,6 +59,13 @@ final class TranslatableAwareTest extends TestCase
         foreach ($files as $file) {
             $class = 'Derafu\\Translation\\'
                 . str_replace('/', '\\', substr($file, strlen(dirname(__DIR__, 2) . '/src/'), -4));
+            if (!class_exists($class)) {
+                throw new \LogicException(sprintf(
+                    'The file %s does not define the class %s.',
+                    $file,
+                    $class
+                ));
+            }
             $classes[$class] = [$class];
         }
 
@@ -172,6 +180,68 @@ final class TranslatableAwareTest extends TestCase
         ]);
 
         $this->assertSame($message, $exception->getTranslatable());
+    }
+
+    /**
+     * What is serialized by the exception itself is always valid, so only data
+     * that was changed, damaged or made by another class can be rejected.
+     *
+     * @param array<string, mixed> $changes
+     */
+    #[DataProvider('provideInvalidSerializedData')]
+    public function testSerializedDataThatIsNotValidIsRejectedWithTheNameOfTheKey(array $changes, string $key): void
+    {
+        $data = array_merge([
+            'message' => 'Cannot read a.txt.',
+            'code' => 0,
+            'file' => __FILE__,
+            'line' => __LINE__,
+            'previous' => null,
+            'defaultDomain' => 'errors',
+            'defaultLocale' => null,
+            'translatable' => new TranslatableMessage('Cannot read a.txt.'),
+        ], $changes);
+        $exception = (new ReflectionClass(TranslatableRuntimeException::class))->newInstanceWithoutConstructor();
+
+        try {
+            $exception->__unserialize($data);
+            $this->fail('Serialized data that is not valid was accepted.');
+        } catch (TranslatableUnexpectedValueException $e) {
+            $this->assertStringContainsString(TranslatableRuntimeException::class, $e->getMessage());
+            $this->assertStringContainsString($key, $e->getMessage());
+        }
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, string}>
+     */
+    public static function provideInvalidSerializedData(): array
+    {
+        return [
+            'message' => [['message' => ['not a string']], 'message'],
+            'code' => [['code' => '5'], 'code'],
+            'file' => [['file' => null], 'file'],
+            'line' => [['line' => 'x'], 'line'],
+            'domain' => [['defaultDomain' => 1], 'defaultDomain'],
+            'locale' => [['defaultLocale' => 5], 'defaultLocale'],
+            'translatable' => [['translatable' => 'text'], 'translatable'],
+            'translatable absent' => [['translatable' => null], 'translatable'],
+            'the first of several' => [['line' => 'x', 'file' => 1], 'file'],
+        ];
+    }
+
+    /**
+     * An exception made from another translatable exception translates like it
+     * does, and its own message is the one of that exception.
+     */
+    public function testAnExceptionMadeFromAnotherTranslatableExceptionHasItsMessage(): void
+    {
+        $inner = new TranslatableRuntimeException(['Cannot read {file}.', 'file' => 'a.txt']);
+
+        $exception = new TranslatableException($inner);
+
+        $this->assertSame($inner, $exception->getTranslatable());
+        $this->assertSame($inner->getMessage(), $exception->getMessage());
     }
 
     public function testAnErrorGivesItsMessageToo(): void

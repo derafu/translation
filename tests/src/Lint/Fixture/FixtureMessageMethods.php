@@ -22,6 +22,8 @@ class FixtureMessageMethods
 {
     /**
      * The id is the first argument and the domain is the third, if it is given.
+     *
+     * @param array<string, mixed> $parameters
      */
     public function trans(string $id, array $parameters = [], ?string $domain = null): TranslatableMessage
     {

@@ -185,6 +185,51 @@ final class MessageMethodTest extends TestCase
         $this->assertSame([['Default domain.', 'messages']], array_map(fn (MessageReference $r) => [$r->id, $r->domain], $references));
     }
 
+    /**
+     * @return list<MessageReference>
+     */
+    private function scanCode(string $code): array
+    {
+        $file = sys_get_temp_dir() . '/translation-method-' . uniqid('', true) . '.php';
+        file_put_contents($file, "<?php\n\nnamespace Scanned;\n\nfunction probe(\$receiver, \$class): void\n{\n" . $code . "\n}\n");
+
+        try {
+            return (new MessageReferenceScanner($this->methods()))->scanFile($file);
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function testAMethodThatIsNotOneOfThemIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scanCode("\$receiver->other('Not a message.');"));
+    }
+
+    public function testACallWithoutTheIdIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scanCode('\\' . FixtureMessageMethods::class . '::translate();'));
+    }
+
+    public function testACallOnAClassThatIsAVariableIsReportedAsAReceiverThatIsNotKnown(): void
+    {
+        $references = $this->scanCode("\$class::translate('Which class?');");
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+        $this->assertSame('$class::translate(\'Which class?\')', $references[0]->expression);
+    }
+
+    public function testACallOnAClassThatIsNotKnownByNameIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scanCode("\\Not\\Installed\\Thing::translate('Unknown class.');"));
+        $this->assertSame([], $this->scanCode("self::translate('Outside of a class.');"));
+    }
+
+    public function testACallAsACallableIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scanCode('\\' . FixtureMessageMethods::class . '::translate(...);'));
+    }
+
     public function testTheClassMustExist(): void
     {
         $this->expectException(TranslatableInvalidArgumentException::class);

@@ -46,7 +46,7 @@ final class MessageReferenceScanner
      * The methods that receive the id of a message, ready to be read: with the
      * position and the name of their arguments.
      *
-     * @var list<array{class: string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}>
+     * @var list<array{class: class-string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}>
      */
     private array $methods = [];
 
@@ -117,6 +117,7 @@ final class MessageReferenceScanner
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)
         );
+        /** @var \SplFileInfo $file */
         foreach ($iterator as $file) {
             if ($file->isFile() && $file->getExtension() === 'php') {
                 $files[] = $file->getPathname();
@@ -133,7 +134,7 @@ final class MessageReferenceScanner
     }
 
     /**
-     * @return array{class: string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}
+     * @return array{class: class-string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}
      */
     private function normalize(MessageMethod $method): array
     {
@@ -147,13 +148,17 @@ final class MessageReferenceScanner
             ]);
         }
 
+        // The reflection above found the method, so the class exists.
+        /** @var class-string $class */
+        $class = $method->class;
+
         [$idPosition, $idName] = $this->argument($method, $parameters, $method->id);
         [$domainPosition, $domainName] = $method->domainArgument === null
             ? [null, null]
             : $this->argument($method, $parameters, $method->domainArgument);
 
         return [
-            'class' => $method->class,
+            'class' => $class,
             'method' => $method->method,
             'domain' => $method->domain,
             'idPosition' => (int) $idPosition,

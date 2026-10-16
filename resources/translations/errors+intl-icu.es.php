@@ -24,6 +24,10 @@ return [
         'El arreglo del mensaje no puede estar vacío.',
     'First element of message array must be a string.' =>
         'El primer elemento del arreglo del mensaje debe ser un string.',
+    'The parameters of the message array must have a name.' =>
+        'Los parámetros del arreglo del mensaje deben tener un nombre.',
+    'The serialized data of the exception {class} is not valid in {key}.' =>
+        'Los datos serializados de la excepción {class} no son válidos en {key}.',
 
     // Lint.
     'The method {class}::{method} does not exist.' =>

@@ -56,22 +56,22 @@ use ValueError;
 final class TranslatableThrowablesTest extends TestCase
 {
     /**
-     * @return array<string, array{Closure(mixed ...): (Throwable&TranslatableInterface), class-string, bool}>
+     * @return array<string, array{Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface), class-string, bool}>
      */
     public static function throwablesProvider(): array
     {
         return [
-            'Error' => [fn (mixed ...$a) => new TranslatableError(...$a), Error::class, false],
-            'TypeError' => [fn (mixed ...$a) => new TranslatableTypeError(...$a), TypeError::class, false],
-            'ValueError' => [fn (mixed ...$a) => new TranslatableValueError(...$a), ValueError::class, false],
-            'ArithmeticError' => [fn (mixed ...$a) => new TranslatableArithmeticError(...$a), ArithmeticError::class, false],
-            'DivisionByZeroError' => [fn (mixed ...$a) => new TranslatableDivisionByZeroError(...$a), DivisionByZeroError::class, false],
-            'JsonException' => [fn (mixed ...$a) => new TranslatableJsonException(...$a), JsonException::class, true],
+            'Error' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableError($m, $c, $p), Error::class, false],
+            'TypeError' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableTypeError($m, $c, $p), TypeError::class, false],
+            'ValueError' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableValueError($m, $c, $p), ValueError::class, false],
+            'ArithmeticError' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableArithmeticError($m, $c, $p), ArithmeticError::class, false],
+            'DivisionByZeroError' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableDivisionByZeroError($m, $c, $p), DivisionByZeroError::class, false],
+            'JsonException' => [fn (string|array|TranslatableInterface $m, int $c = 0, ?Throwable $p = null) => new TranslatableJsonException($m, $c, $p), JsonException::class, true],
         ];
     }
 
     /**
-     * @return array<string, array{Closure(mixed ...): (Throwable&TranslatableInterface)}>
+     * @return array<string, array{Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface)}>
      */
     public static function factoriesProvider(): array
     {
@@ -79,7 +79,7 @@ final class TranslatableThrowablesTest extends TestCase
     }
 
     /**
-     * @param Closure(mixed ...): (Throwable&TranslatableInterface) $create
+     * @param Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface) $create
      * @param class-string $native
      */
     #[DataProvider('throwablesProvider')]
@@ -95,7 +95,7 @@ final class TranslatableThrowablesTest extends TestCase
     }
 
     /**
-     * @param Closure(mixed ...): (Throwable&TranslatableInterface) $create
+     * @param Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface) $create
      */
     #[DataProvider('factoriesProvider')]
     public function testTheMessageCanBeGivenWithNamedParameters(Closure $create): void
@@ -104,7 +104,7 @@ final class TranslatableThrowablesTest extends TestCase
     }
 
     /**
-     * @param Closure(mixed ...): (Throwable&TranslatableInterface) $create
+     * @param Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface) $create
      */
     #[DataProvider('factoriesProvider')]
     public function testItIsTranslated(Closure $create): void
@@ -117,7 +117,7 @@ final class TranslatableThrowablesTest extends TestCase
     }
 
     /**
-     * @param Closure(mixed ...): (Throwable&TranslatableInterface) $create
+     * @param Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface) $create
      */
     #[DataProvider('factoriesProvider')]
     public function testItKeepsItsCodeAndItsPreviousThrowable(Closure $create): void
@@ -130,7 +130,7 @@ final class TranslatableThrowablesTest extends TestCase
     }
 
     /**
-     * @param Closure(mixed ...): (Throwable&TranslatableInterface) $create
+     * @param Closure(string|array<int|string, mixed>|TranslatableInterface, int=, Throwable|null=): (Throwable&TranslatableInterface) $create
      */
     #[DataProvider('factoriesProvider')]
     public function testItSurvivesBeingSerialized(Closure $create): void

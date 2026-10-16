@@ -46,7 +46,7 @@ final class TranslationMessagesTest extends TestCase
         $this->assertSame(
             [
                 'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
-                    . 'new \\Derafu\\Translation\\TranslatableMessage($msg, $message, $this->defaultDomain, $this->defaultLocale)',
+                    . 'new \\Derafu\\Translation\\TranslatableMessage($msg, $parameters, $this->defaultDomain, $this->defaultLocale)',
                 'Derafu\\Translation\\Trait\\TranslatableExceptionTrait::normalizeMessage: '
                     . 'new \\Derafu\\Translation\\TranslatableMessage($message, [], $this->defaultDomain, $this->defaultLocale)',
             ],

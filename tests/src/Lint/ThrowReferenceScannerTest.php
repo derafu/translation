@@ -13,12 +13,14 @@ declare(strict_types=1);
 namespace Derafu\TestsTranslation\Lint;
 
 use Derafu\TestsTranslation\Lint\Fixture\FixtureNativeChildException;
+use Derafu\TestsTranslation\Lint\Fixture\FixtureNativeParentCallException;
 use Derafu\Translation\Lint\ThrowReference;
 use Derafu\Translation\Lint\ThrowReferenceScanner;
 use Derafu\Translation\Lint\ThrowReferenceVisitor;
 use Derafu\Translation\Trait\TranslatableExceptionTrait;
 use Derafu\Translation\TranslatableMessage;
 use InvalidArgumentException;
+use LogicException;
 use PhpParser\Error as ParseError;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -199,10 +201,21 @@ final class ThrowReferenceScannerTest extends TestCase
             fn (ThrowReference $r) => !$r->isDeclaration()
         );
 
-        // `new static` and `new self` are the class that is being read.
+        // `new static` and `new self` are the class that is being read, and
+        // `new parent` is the one that it extends.
         $this->assertSame(
-            [FixtureNativeChildException::class, FixtureNativeChildException::class],
+            [FixtureNativeChildException::class, FixtureNativeChildException::class, LogicException::class],
             $this->classes(array_values($references))
+        );
+    }
+
+    public function testParentInAClassIsTheClassThatItExtends(): void
+    {
+        $references = (new ThrowReferenceScanner())->scanFile(__DIR__ . '/Fixture/FixtureNativeParentCallException.php');
+
+        $this->assertSame(
+            [FixtureNativeParentCallException::class, LogicException::class],
+            $this->classes($references)
         );
     }
 
@@ -213,10 +226,13 @@ final class ThrowReferenceScannerTest extends TestCase
             fn (ThrowReference $r) => $r->isDeclaration()
         ));
 
-        $this->assertCount(1, $references);
+        $this->assertCount(2, $references);
         $this->assertSame(FixtureNativeChildException::class, $references[0]->class);
         $this->assertSame(RuntimeException::class, $references[0]->extends);
         $this->assertTrue($references[0]->loadable);
+        $this->assertSame(FixtureNativeParentCallException::class, $references[1]->class);
+        $this->assertSame(LogicException::class, $references[1]->extends);
+        $this->assertTrue($references[1]->loadable);
     }
 
     /**
@@ -309,6 +325,16 @@ final class ThrowReferenceScannerTest extends TestCase
      * An exception that is made and thrown later, or given back by a factory, is
      * found where it is made: it is not a `throw`, but it is the same exception.
      */
+    public function testSelfOutsideOfAClassIsIgnored(): void
+    {
+        $this->assertSame([], $this->scan("throw new self('Outside of a class.');"));
+    }
+
+    public function testParentOutsideOfAClassIsIgnored(): void
+    {
+        $this->assertSame([], $this->scan("throw new parent('Outside of a class.');"));
+    }
+
     public function testItFindsAnExceptionThatIsMadeAndNotThrownThere(): void
     {
         $references = $this->scan(

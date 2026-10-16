@@ -22,6 +22,9 @@ use Throwable;
  */
 class FixtureDefaultMessageException extends TranslatableRuntimeException
 {
+    /**
+     * @param string|array<int|string, mixed>|TranslatableInterface $message
+     */
     public function __construct(
         string|array|TranslatableInterface $message = 'Default message.',
         int $code = 0,

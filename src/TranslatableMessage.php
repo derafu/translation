@@ -12,12 +12,14 @@ declare(strict_types=1);
 
 namespace Derafu\Translation;
 
+use DateTimeInterface;
 use Derafu\Translation\Contract\TranslatableAwareInterface;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\Contract\TranslatableMessageInterface;
 use IntlException;
 use JsonSerializable;
 use MessageFormatter;
+use Stringable;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Throwable;
@@ -203,11 +205,39 @@ final class TranslatableMessage implements TranslatableMessageInterface
     private function normalizeParameters(bool $withoutTranslator): array
     {
         return array_map(
-            fn (mixed $value) => $value instanceof Throwable
-                && ($withoutTranslator || !$value instanceof TranslatableInterface)
-                ? $value->getMessage()
-                : $value,
+            fn (mixed $value) => $this->normalizeParameter($value, $withoutTranslator),
             $this->parameters
         );
+    }
+
+    /**
+     * A parameter as it is given to the translator or to ICU.
+     *
+     * Without a translator the message is formatted by ICU alone, which can not
+     * write an array or an object that is not a string, a date or a throwable
+     * (it would warn or fail): an array is written as JSON and such an object as
+     * the name of its class.
+     */
+    private function normalizeParameter(mixed $value, bool $withoutTranslator): mixed
+    {
+        if ($value instanceof Throwable) {
+            return $withoutTranslator || !$value instanceof TranslatableInterface
+                ? $value->getMessage()
+                : $value;
+        }
+
+        if (!$withoutTranslator) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: 'array';
+        }
+
+        if (is_object($value) && !$value instanceof Stringable && !$value instanceof DateTimeInterface) {
+            return $value::class;
+        }
+
+        return $value;
     }
 }

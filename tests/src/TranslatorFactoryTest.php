@@ -50,6 +50,7 @@ final class TranslatorFactoryTest extends TestCase
             'yaml', 'json', 'php', 'xliff', 'po', 'mo', 'csv', 'ini',
         ];
 
+        $this->assertIsArray($loaders);
         foreach ($expectedFormats as $format) {
             $this->assertArrayHasKey(
                 $format,
@@ -71,6 +72,22 @@ final class TranslatorFactoryTest extends TestCase
         ]);
 
         $translator = TranslatorFactory::create('en', [], [$provider]);
+
+        $this->assertSame(
+            'Welcome John!',
+            $translator->trans('welcome', ['name' => 'John'], 'messages+intl-icu')
+        );
+    }
+
+    public function testRegistersResourceProvidersGivenAsAnyIterable(): void
+    {
+        $providers = (static function () {
+            yield new SimpleTranslationResourceProvider([
+                __DIR__ . '/../fixtures/translations',
+            ]);
+        })();
+
+        $translator = TranslatorFactory::create('en', [], $providers);
 
         $this->assertSame(
             'Welcome John!',

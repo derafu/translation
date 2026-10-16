@@ -250,7 +250,7 @@ final class TranslatableMessageTest extends TestCase
     {
         $message = new TranslatableMessage('Hello {name}', ['name' => 'Ana'], 'auth');
 
-        $stored = json_decode((string) json_encode($message), true);
+        $stored = $this->exported($message);
 
         $this->assertSame(
             [
@@ -288,7 +288,7 @@ final class TranslatableMessageTest extends TestCase
                     'defaultLocale' => null,
                 ],
             ],
-            json_decode((string) json_encode($message), true)['parameters']
+            $this->exported($message)['parameters']
         );
     }
 
@@ -299,7 +299,7 @@ final class TranslatableMessageTest extends TestCase
 
         $this->assertSame(
             ['reason' => ['message' => 'Cannot read {file}.', 'parameters' => ['file' => 'a.txt'], 'domain' => 'errors', 'defaultLocale' => null]],
-            json_decode((string) json_encode($message), true)['parameters']
+            $this->exported($message)['parameters']
         );
     }
 
@@ -320,8 +320,46 @@ final class TranslatableMessageTest extends TestCase
 
         $this->assertSame(
             ['reason' => 'Custom text.'],
-            json_decode((string) json_encode(new TranslatableMessage('Failed: {reason}', ['reason' => $inner])), true)['parameters']
+            $this->exported(new TranslatableMessage('Failed: {reason}', ['reason' => $inner]))['parameters']
         );
+    }
+
+    /**
+     * Without a translator the message is formatted by ICU, which only knows how
+     * to write some values: the others are written so that formatting a message
+     * never fails and never warns.
+     */
+    public function testAnArrayParameterIsWrittenAsJson(): void
+    {
+        $message = new TranslatableMessage('Values: {values}', ['values' => [1, 'a' => 'ñ/x']]);
+
+        $this->assertSame('Values: {"0":1,"a":"ñ/x"}', (string) $message);
+    }
+
+    public function testAnObjectParameterWithoutAStringIsWrittenAsItsClass(): void
+    {
+        $message = new TranslatableMessage('Given: {value}', ['value' => new \stdClass()]);
+
+        $this->assertSame('Given: stdClass', (string) $message);
+    }
+
+    public function testAnObjectParameterWithAStringIsWrittenAsIt(): void
+    {
+        $value = new class () implements \Stringable {
+            public function __toString(): string
+            {
+                return 'its text';
+            }
+        };
+
+        $this->assertSame('Given: its text', (string) new TranslatableMessage('Given: {value}', ['value' => $value]));
+    }
+
+    public function testADateParameterIsStillFormattedByIcu(): void
+    {
+        $message = new TranslatableMessage('Day: {date, date, short}', ['date' => new \DateTimeImmutable('2026-03-05 10:00:00 UTC')], null, 'en');
+
+        $this->assertSame('Day: 3/5/26', (string) $message);
     }
 
     public function testAnExceptionThatIsNotTranslatableInsideTheMessageIsExportedAsItsText(): void
@@ -330,7 +368,18 @@ final class TranslatableMessageTest extends TestCase
 
         $this->assertSame(
             ['reason' => 'The disk is full.'],
-            json_decode((string) json_encode($message), true)['parameters']
+            $this->exported($message)['parameters']
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function exported(TranslatableMessage $message): array
+    {
+        $data = json_decode((string) json_encode($message), true);
+        $this->assertIsArray($data);
+
+        return $data;
     }
 }

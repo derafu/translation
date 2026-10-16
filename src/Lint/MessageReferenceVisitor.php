@@ -110,7 +110,7 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
     private array $idParameters = [];
 
     /**
-     * @param list<array{class: string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}> $methods
+     * @param list<array{class: class-string, method: string, domain: string|null, idPosition: int, idName: string|null, domainPosition: int|null, domainName: string|null}> $methods
      * The methods that receive the id of a message.
      */
     public function __construct(
@@ -429,7 +429,7 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      *
      * @param class-string $class
      */
-    private function collectMessage(Node $at, Arg $argument, string $class, ?string $domain): void
+    private function collectMessage(Node\Expr $at, Arg $argument, string $class, ?string $domain): void
     {
         if ($argument->unpack) {
             $this->references[] = new MessageReference(
@@ -458,7 +458,7 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      *
      * @param class-string $class
      */
-    private function collectValue(Node $at, Node\Expr $value, string $class, ?string $domain): void
+    private function collectValue(Node\Expr $at, Node\Expr $value, string $class, ?string $domain): void
     {
         // A message that is already a translatable message is found on its
         // own, where it is built.
@@ -646,12 +646,8 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      * call, so it only changes when that code does. An anonymous class is printed
      * without its body.
      */
-    private function printCall(Node $call): string
+    private function printCall(Node\Expr $call): string
     {
-        if (!$call instanceof Node\Expr) {
-            return '';
-        }
-
         if ($call instanceof New_ && $call->class instanceof Class_) {
             $call = new New_(new Name('class@anonymous'), $call->args);
         }
@@ -697,7 +693,7 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      * not take that argument, whatever it is given.
      *
      * @param class-string $class Class whose constructor is called.
-     * @param array<Arg|Node\VariadicPlaceholder> $args
+     * @param array<Arg|Node\VariadicPlaceholder|Node\ArgPlaceholder> $args
      */
     private function argument(string $class, array $args, string $parameter): ?Arg
     {
@@ -758,14 +754,10 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      */
     private function checkTranslatable(string $class): bool
     {
-        try {
-            $reflection = new ReflectionClass($class);
+        $reflection = new ReflectionClass($class);
 
-            return $reflection->implementsInterface(Throwable::class)
-                && $reflection->implementsInterface(TranslatableInterface::class);
-        } catch (Throwable) {
-            return false;
-        }
+        return $reflection->implementsInterface(Throwable::class)
+            && $reflection->implementsInterface(TranslatableInterface::class);
     }
 
     /**

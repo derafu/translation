@@ -76,6 +76,22 @@ final class TranslatableExceptionTest extends TestCase
         new TranslatableException([123, 'param' => 'value']);
     }
 
+    public function testConstructWithoutTheKeyZero(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('First element of message array must be a string.');
+
+        new TranslatableException(['param' => 'value']);
+    }
+
+    public function testConstructWithAParameterWithoutAName(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The parameters of the message array must have a name.');
+
+        new TranslatableException(['Message {0}', 'value']);
+    }
+
     public function testConstructWithPreviousException(): void
     {
         $previous = new Exception('Previous error');
