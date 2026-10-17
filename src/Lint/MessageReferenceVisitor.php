@@ -332,12 +332,10 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             return;
         }
 
+        // A translatable class is a throwable, so it always has a parent: the
+        // message is the argument that its constructor takes.
         $parent = get_parent_class($class);
-        if ($parent === false) {
-            return;
-        }
-
-        $argument = $this->argument($parent, $node->args, 'message');
+        $argument = $parent === false ? null : $this->argument($parent, $node->args, 'message');
         if ($argument === null || $this->isPassedOn($argument)) {
             return;
         }

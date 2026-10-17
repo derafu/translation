@@ -382,4 +382,16 @@ final class TranslatableMessageTest extends TestCase
 
         return $data;
     }
+
+    /**
+     * ICU can not format everything: a parameter that is not a date can not be
+     * the date of a message. The message is then given as it is, and nothing
+     * fails where a text is expected (the message of an exception, for example).
+     */
+    public function testAMessageThatIcuCanNotFormatIsGivenAsItIs(): void
+    {
+        $message = new TranslatableMessage('Created on {created, date}.', ['created' => 'not a date']);
+
+        $this->assertSame('Created on {created, date}.', (string) $message);
+    }
 }

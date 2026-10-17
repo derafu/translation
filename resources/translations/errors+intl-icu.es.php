@@ -29,6 +29,12 @@ return [
     'The serialized data of the exception {class} is not valid in {key}.' =>
         'Los datos serializados de la excepción {class} no son válidos en {key}.',
 
+    // Lists.
+    'The type of the list is not valid: {type}.' =>
+        'El tipo de la lista no es válido: {type}.',
+    'The width of the list is not valid: {width}.' =>
+        'El ancho de la lista no es válido: {width}.',
+
     // Lint.
     'The method {class}::{method} does not exist.' =>
         'El método {class}::{method} no existe.',
