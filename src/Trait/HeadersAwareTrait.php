@@ -18,7 +18,7 @@ namespace Derafu\Translation\Trait;
 trait HeadersAwareTrait
 {
     /**
-     * @var array<string, string>
+     * @var array<string, string|list<string>>
      */
     protected array $headers = [];
 

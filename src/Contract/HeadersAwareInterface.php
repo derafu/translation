@@ -26,14 +26,18 @@ interface HeadersAwareInterface
     /**
      * Sets the headers.
      *
-     * @param array<string, string> $headers
+     * The value of a header is a string, or a list of strings for a header with
+     * several values (`Set-Cookie`, `Link`), as PSR-7 has them. A value that is
+     * not text (a number) is converted by whoever sets it.
+     *
+     * @param array<string, string|list<string>> $headers
      */
     public function setHeaders(array $headers): static;
 
     /**
      * The headers, or none.
      *
-     * @return array<string, string>
+     * @return array<string, string|list<string>>
      */
     public function getHeaders(): array;
 }

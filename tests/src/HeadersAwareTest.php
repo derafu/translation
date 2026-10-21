@@ -66,4 +66,14 @@ final class HeadersAwareTest extends TestCase
 
         $this->assertSame($subject, $subject->setHeaders(['Retry-After' => '60']));
     }
+
+    #[Test]
+    public function aHeaderCanHaveSeveralValues(): void
+    {
+        $subject = $this->subject();
+
+        $subject->setHeaders(['Set-Cookie' => ['a=1', 'b=2'], 'Retry-After' => '60']);
+
+        $this->assertSame(['Set-Cookie' => ['a=1', 'b=2'], 'Retry-After' => '60'], $subject->getHeaders());
+    }
 }
