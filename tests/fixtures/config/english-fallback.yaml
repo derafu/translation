@@ -1,0 +1,6 @@
+imports:
+    - { resource: application.yaml }
+
+parameters:
+    derafu.translation.default_locale: fr
+    derafu.translation.fallback_locales: [en]

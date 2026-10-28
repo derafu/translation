@@ -1,0 +1,6 @@
+imports:
+    - { resource: '../../../resources/config/translation-services.yaml' }
+
+parameters:
+    derafu.translation.default_locale: es
+    derafu.translation.fallback_locales: [en]

@@ -1,0 +1,9 @@
+imports:
+    - { resource: spanish.yaml }
+
+services:
+    Derafu\Translation\Contract\TranslationResourceProviderInterface $application:
+        class: Derafu\Translation\SimpleTranslationResourceProvider
+        arguments:
+            $directories: ['%test.project_dir%/tests/fixtures/translations']
+        tags: ['derafu_translation.resource_provider']

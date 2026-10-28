@@ -1,42 +1,26 @@
-# Optional wiring for apps using symfony/dependency-injection.
-# Import it from your own services.yaml:
+# Complete translation wiring for applications without FrameworkBundle's
+# native translator. Import this file to create one shared TranslatorInterface
+# service and configure its locale through the parameters below.
 #
-#   imports:
-#       - { resource: '../vendor/derafu/translation/resources/config/translation-services.yaml' }
+# Symfony applications use symfony-translation-bundle instead. That bundle
+# imports translation-resources-services.yaml and feeds the providers into the
+# existing native translator, preserving Symfony's loaders, cache and aliases.
 #
-# Tag each of your resource provider services explicitly (Symfony's
-# `_instanceof` autoconfiguration does not propagate across imported files,
-# so it can't be shipped here to autotag services declared in your file):
-#
-#   App\Translation\MyProvider:
-#       tags: ['derafu_translation.resource_provider']
-#
-# Feed the tagged providers straight into TranslatorFactory::create() when
-# you register your own Translator (locale and fallback locales are
-# project-specific, so that registration itself still belongs in your app):
-#
-#   Symfony\Component\Translation\Translator:
-#       factory: ['Derafu\Translation\TranslatorFactory', 'create']
-#       arguments:
-#           $defaultLocale: 'es'
-#           $fallbackLocales: ['es', 'en']
-#           $resourceProviders: !tagged_iterator derafu_translation.resource_provider
-#
-# Registration happens inside that factory call, not via a separately
-# fetched TranslationResourceRegistrar — a service nothing else depends on
-# is never built by a DI container, so its resources would silently never
-# load. Feeding the providers into the factory call guarantees registration
-# runs every time a Translator is built.
-#
-# The alias below lets anything type-hint the translation-contracts
-# interface (as it should) and still resolve to the Translator service
-# above via autowiring. If you register your Translator under a different
-# service id, adjust this alias's target accordingly.
-services:
-    Symfony\Contracts\Translation\TranslatorInterface: '@Symfony\Component\Translation\Translator'
+# Resource providers join derafu_translation.resource_provider through explicit
+# tags. The factory registers their catalogues while constructing the translator;
+# no separately requested registrar service is required.
+imports:
+    - { resource: translation-resources-services.yaml }
 
-    # Feeds the translations of this package (the messages of its errors) into
-    # the Translator. The tag is explicit because _instanceof does not propagate
-    # across imported files.
-    Derafu\Translation\Translation\TranslationResourceProvider:
-        tags: ['derafu_translation.resource_provider']
+parameters:
+    derafu.translation.default_locale: en
+    derafu.translation.fallback_locales: []
+
+services:
+    Symfony\Contracts\Translation\TranslatorInterface:
+        class: Symfony\Component\Translation\Translator
+        factory: ['Derafu\Translation\TranslatorFactory', create]
+        arguments:
+            $defaultLocale: '%derafu.translation.default_locale%'
+            $fallbackLocales: '%derafu.translation.fallback_locales%'
+            $resourceProviders: !tagged_iterator derafu_translation.resource_provider

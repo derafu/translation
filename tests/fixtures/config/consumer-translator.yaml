@@ -1,0 +1,12 @@
+# An application owns its translator; the resources-only import must preserve it.
+imports:
+    - { resource: '../../../resources/config/translation-resources-services.yaml' }
+
+services:
+    Symfony\Contracts\Translation\TranslatorInterface:
+        class: Symfony\Component\Translation\Translator
+        factory: ['Derafu\Translation\TranslatorFactory', create]
+        arguments:
+            $defaultLocale: fr
+            $fallbackLocales: [es, en]
+            $resourceProviders: !tagged_iterator derafu_translation.resource_provider

@@ -1,0 +1,7 @@
+# Translation resources shared by standalone and native Symfony integrations.
+# This configuration contributes catalogues without creating a translator or
+# changing the application's TranslatorInterface binding.
+# Providers from other packages join the same collection through explicit tags.
+services:
+    Derafu\Translation\Translation\TranslationResourceProvider:
+        tags: ['derafu_translation.resource_provider']
