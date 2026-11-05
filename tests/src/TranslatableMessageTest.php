@@ -373,7 +373,7 @@ final class TranslatableMessageTest extends TestCase
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function exported(TranslatableMessage $message): array
     {

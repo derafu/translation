@@ -84,7 +84,7 @@ final class TranslationAudit
         }
 
         $notUsed = [];
-        $domains = $catalogue->getDomains();
+        $domains = array_filter($catalogue->getDomains(), is_string(...));
         sort($domains);
         foreach ($domains as $domain) {
             foreach (array_diff(array_keys($catalogue->all($domain)), $used[$domain] ?? []) as $id) {

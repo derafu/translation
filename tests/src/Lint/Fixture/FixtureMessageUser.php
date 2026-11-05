@@ -12,15 +12,13 @@ declare(strict_types=1);
 
 namespace Derafu\TestsTranslation\Lint\Fixture;
 
-use Derafu\Translation\TranslatableMessage;
-
 /**
  * A class that uses the methods of `FixtureMessageMethods`, by being one.
  */
 class FixtureMessageUser extends FixtureMessageMethods
 {
     /**
-     * @return list<TranslatableMessage|string>
+     * @return list<mixed>
      */
     public function run(mixed $variable, bool $flag, object $other): array
     {
