@@ -410,4 +410,63 @@ final class ThrowReferenceScannerTest extends TestCase
 
         (new ThrowReferenceScanner())->scanFile($file);
     }
+
+    public function testAFileThatIsNotPhpIsNotReadWhenAFileOfADirectoryIsScanned(): void
+    {
+        $directory = $this->directory();
+        file_put_contents($directory . '/a.php', "<?php\nthrow new \\LogicException('In a.');");
+        file_put_contents($directory . '/notes.txt', '<?php throw new \\Exception(;');
+
+        $references = (new ThrowReferenceScanner())->scanDirectory($directory);
+
+        $this->assertSame(['LogicException'], $this->classes($references));
+    }
+
+    /**
+     * `self` means a class only while that class is being read.
+     */
+    public function testSelfAfterAClassThatEndedIsIgnored(): void
+    {
+        $references = $this->scan(
+            "\$x = new class extends RuntimeException {};\n"
+            . "throw new self('Outside of the class.');"
+        );
+
+        $this->assertSame([RuntimeException::class], $this->classes($references));
+    }
+
+    /**
+     * Inside of an anonymous class, `self` is the class that it extends.
+     */
+    public function testSelfInAnAnonymousClassIsTheClassThatItExtends(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            $x = new class extends RuntimeException {
+                public function fail(): never
+                {
+                    throw new self('Inside.');
+                }
+            };
+            PHP);
+
+        $this->assertSame([RuntimeException::class, RuntimeException::class], $this->classes($references));
+    }
+
+    /**
+     * An anonymous class that extends nothing is not an exception, and `self`
+     * inside of it is not one that is known.
+     */
+    public function testAnAnonymousClassThatExtendsNothingHasNothingToReport(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            $x = new class {
+                public function fail(): never
+                {
+                    throw new self('Inside.');
+                }
+            };
+            PHP);
+
+        $this->assertSame([], $references);
+    }
 }

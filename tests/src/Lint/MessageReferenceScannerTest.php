@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsTranslation\Lint;
 
+use Derafu\TestsTranslation\Lint\Fixture\FixtureDefaultMessageException;
 use Derafu\Translation\Lint\MessageReference;
 use Derafu\Translation\Lint\MessageReferenceScanner;
 use Derafu\Translation\Lint\MessageReferenceVisitor;
@@ -868,5 +869,233 @@ final class MessageReferenceScannerTest extends TestCase
         $this->expectException(ParseError::class);
 
         (new MessageReferenceScanner())->scanFile($file);
+    }
+
+    /**
+     * The references are in order of line, also when what is inside of a
+     * construction is found before the construction itself.
+     */
+    public function testTheReferencesAreInOrderOfLine(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            $x = new class ('Outer.') extends TranslatableException {
+                public function inner(): void
+                {
+                    throw new TranslatableException('Inner.');
+                }
+            };
+            PHP);
+
+        $this->assertSame([['Outer.', 'errors'], ['Inner.', 'errors']], $this->idsAndDomains($references));
+    }
+
+    /**
+     * Only the files that end with `.php` are read.
+     */
+    public function testAFileThatIsNotPhpIsNotReadWhenAFileOfADirectoryIsScanned(): void
+    {
+        $directory = $this->directory();
+        file_put_contents($directory . '/a.php', "<?php\nnew \\Derafu\\Translation\\Exception\\Core\\TranslatableException('In a.');");
+        file_put_contents($directory . '/notes.txt', '<?php new TranslatableException(;');
+
+        $references = (new MessageReferenceScanner())->scanDirectory($directory);
+
+        $this->assertSame(['In a.'], array_map(fn (MessageReference $r) => $r->id, $references));
+    }
+
+    /**
+     * `self` means a class only while that class is being read.
+     */
+    public function testSelfAfterAClassThatEndedIsNotAReference(): void
+    {
+        $references = $this->scan(
+            "\$x = new class extends FixtureDefaultMessageException {};\n"
+            . "throw new self('Outside of the class.');"
+        );
+
+        $this->assertSame([], $references);
+    }
+
+    /**
+     * The name of the function of a method is the one of its class, also after
+     * an anonymous class that was inside of another method.
+     */
+    public function testTheFunctionOfAMethodIsOfItsClassAfterAnAnonymousClass(): void
+    {
+        $references = $this->scanSource(<<<'PHP'
+            class Outer
+            {
+                public function first(): void
+                {
+                    $x = new class extends \Derafu\TestsTranslation\Lint\Fixture\FixtureDefaultMessageException {};
+                }
+
+                public function second(string $message): void
+                {
+                    throw new \Derafu\Translation\Exception\Core\TranslatableException($message);
+                }
+            }
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertSame('Scanned\Outer::second', $references[0]->function);
+    }
+
+    public function testCodeAfterAClassIsNotInsideOfTheLastMethodOfTheClass(): void
+    {
+        $references = $this->scanSource(<<<'PHP'
+            class Declared
+            {
+                public function method(): void
+                {
+                }
+            }
+
+            $e = new \Derafu\Translation\Exception\Core\TranslatableException($message);
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertNull($references[0]->function);
+    }
+
+    /**
+     * The parameters of a constructor are passed on only inside of it: the ones
+     * of a constructor that ended do not count for the code that follows.
+     */
+    public function testTheParametersOfAConstructorThatEndedAreNotPassedOn(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            $a = new class extends FixtureDefaultMessageException {
+                public function __construct(string $uri)
+                {
+                }
+            };
+            $b = new class extends FixtureDefaultMessageException {
+                public function make(string $uri): void
+                {
+                    parent::__construct($uri);
+                }
+            };
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    /**
+     * Inside of an anonymous class, the class that matters for the checks is the
+     * one that it extends.
+     */
+    public function testAnAnonymousClassThatCallsTheConstructorOfItsParentHasAMessage(): void
+    {
+        $references = $this->scan(<<<'PHP'
+            $x = new class extends FixtureDefaultMessageException {
+                public function __construct()
+                {
+                    parent::__construct('Literal.');
+                }
+            };
+            PHP);
+
+        $this->assertSame([['Literal.', 'errors']], $this->idsAndDomains($references));
+    }
+
+    public function testParentOutsideOfAClassIsNotAReference(): void
+    {
+        $this->assertSame([], $this->scan("throw new parent('Outside of a class.');"));
+    }
+
+    /**
+     * `new parent` is the class that the one that is being read extends.
+     */
+    public function testNewParentIsTheClassThatTheOneBeingReadExtends(): void
+    {
+        $references = (new MessageReferenceScanner())->scanFile(__DIR__ . '/Fixture/FixtureNewParentException.php');
+
+        $this->assertCount(1, $references);
+        $this->assertSame('Made as the parent.', $references[0]->id);
+        $this->assertSame(FixtureDefaultMessageException::class, $references[0]->class);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function callsThatAreNotTheConstructorOfTheParentProvider(): array
+    {
+        return [
+            'another method of the parent' => ["parent::trans('Literal.');"],
+            'the constructor of the same class' => ["self::__construct('Literal.');"],
+            'a static method of another class' => ["\\Not\\Installed\\Thing::helper('Literal.');"],
+        ];
+    }
+
+    /**
+     * Only `parent::__construct(...)` is the message of the class.
+     */
+    #[DataProvider('callsThatAreNotTheConstructorOfTheParentProvider')]
+    public function testACallThatIsNotTheConstructorOfTheParentIsNotAMessage(string $call): void
+    {
+        $references = $this->scan(
+            'new class extends FixtureDefaultMessageException {'
+            . ' public function run(): void { ' . $call . ' } };'
+        );
+
+        $this->assertSame([], $references);
+    }
+
+    /**
+     * The default of the parameter `$message` is a message only for a class that
+     * is translatable.
+     */
+    public function testTheDefaultOfAMessageParameterOfAClassThatIsNotTranslatableIsNotAReference(): void
+    {
+        $this->assertSame([], $this->scan(
+            "new class extends RuntimeException { public function __construct(\$message = 'Default.') {} };"
+        ));
+        $this->assertSame([], $this->scanSource(
+            "class Plain\n{\n    public function __construct(string \$message = 'Default.')\n    {\n    }\n}"
+        ));
+    }
+
+    /**
+     * Only the parameter that is called `$message` has the message.
+     */
+    public function testTheDefaultOfAnotherParameterIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scan(
+            "new class extends FixtureDefaultMessageException { public function __construct(string \$other = 'Default.') {} };"
+        ));
+    }
+
+    /**
+     * An array is a message by its first element, the one without a key.
+     */
+    public function testAnArrayWhoseFirstElementHasAKeyIsDynamic(): void
+    {
+        $references = $this->scan("throw new TranslatableException(['key' => 'Literal.']);");
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    /**
+     * An argument is the message only if the constructor has the parameter
+     * `$message`: a named argument or a spread does not make one.
+     */
+    public function testAnArgumentOfAConstructorWithoutTheMessageParameterIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scan(
+            "throw new FixtureParentCallException(message: 'Named, but there is no such parameter.');\n"
+            . 'throw new FixtureParentCallException(...$arguments);'
+        ));
+    }
+
+    /**
+     * A call whose method is not a name (`$object->$method()`) is not one of the
+     * calls that the scanner looks at, with or without methods to look for.
+     */
+    public function testACallWithAMethodThatIsNotANameIsNotAMessage(): void
+    {
+        $this->assertSame([], $this->scan('$object->$method(\'Dynamic.\'); Thing::$method(\'Dynamic.\');'));
     }
 }

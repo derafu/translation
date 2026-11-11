@@ -14,6 +14,7 @@ namespace Derafu\TestsTranslation\Lint;
 
 use Derafu\TestsTranslation\Lint\Fixture\FixtureMessageMethods;
 use Derafu\TestsTranslation\Lint\Fixture\FixtureMessageUser;
+use Derafu\TestsTranslation\Lint\Fixture\FixtureOtherTranslator;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException;
 use Derafu\Translation\Lint\MessageMethod;
 use Derafu\Translation\Lint\MessageReference;
@@ -256,5 +257,108 @@ final class MessageMethodTest extends TestCase
         $this->expectException(TranslatableInvalidArgumentException::class);
 
         new MessageReferenceScanner([new MessageMethod(FixtureMessageMethods::class, 'trans', domainArgument: 9)]);
+    }
+
+    /**
+     * @param list<MessageMethod> $methods
+     * @return list<MessageReference>
+     */
+    private function scanWith(array $methods, string $code): array
+    {
+        $file = sys_get_temp_dir() . '/translation-method-' . uniqid('', true) . '.php';
+        file_put_contents($file, "<?php\n\nnamespace Scanned;\n\nfunction probe(\$receiver, \$class): void\n{\n" . $code . "\n}\n");
+
+        try {
+            return (new MessageReferenceScanner($methods))->scanFile($file);
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function testTheErrorOfAnArgumentThatDoesNotExistSaysWhichOne(): void
+    {
+        try {
+            new MessageReferenceScanner([new MessageMethod(FixtureMessageMethods::class, 'trans', id: 1234)]);
+            $this->fail('An argument that does not exist was accepted.');
+        } catch (TranslatableInvalidArgumentException $e) {
+            $this->assertStringContainsString('has no argument 1234.', $e->getMessage());
+        }
+    }
+
+    public function testACallWhoseMethodIsNotANameIsNotAMessage(): void
+    {
+        $references = $this->scanWith(
+            $this->methods(),
+            "\$receiver->\$class('Dynamic.');\n\\" . FixtureMessageMethods::class . "::\$class('Dynamic.');"
+        );
+
+        $this->assertSame([], $references);
+    }
+
+    /**
+     * The id that a method passes on is the one of that method only: after it,
+     * the same variable is an id that is not known.
+     */
+    public function testTheIdThatAMethodPassesOnIsNotPassedOnAfterTheMethod(): void
+    {
+        $references = $this->scanWith($this->methods(), <<<'PHP'
+            $x = new class extends \Derafu\TestsTranslation\Lint\Fixture\FixtureMessageMethods {
+                public function trans(string $id, array $parameters = [], ?string $domain = null): \Derafu\Translation\TranslatableMessage
+                {
+                    return new \Derafu\Translation\TranslatableMessage($id);
+                }
+            };
+            throw new \Derafu\Translation\Exception\Core\TranslatableException($id);
+            PHP);
+
+        $this->assertCount(1, $references);
+        $this->assertTrue($references[0]->isDynamic());
+    }
+
+    public function testAMethodWithTheNameOfOneOfThemThatLacksTheArgumentOfTheIdHasNoIdToPassOn(): void
+    {
+        $references = $this->scanWith($this->methods(), <<<'PHP'
+            $x = new class extends \Derafu\TestsTranslation\Lint\Fixture\FixtureMessageMethods {
+                public function trans(): void
+                {
+                }
+            };
+            PHP);
+
+        $this->assertSame([], $references);
+    }
+
+    /**
+     * Each call is checked against the methods of the class of what is called:
+     * the ones of other classes that have the same name are left out.
+     */
+    public function testTheMethodOfTheClassOfTheCallIsFoundAfterTheOnesOfOtherClasses(): void
+    {
+        $references = $this->scanWith(
+            [
+                new MessageMethod(FixtureOtherTranslator::class, 'translate'),
+                new MessageMethod(FixtureMessageMethods::class, 'translate', domain: 'fixture'),
+            ],
+            '\\' . FixtureMessageMethods::class . "::translate('Second candidate.');"
+        );
+
+        $this->assertSame([['Second candidate.', 'fixture']], array_map(fn (MessageReference $r) => [$r->id, $r->domain], $references));
+    }
+
+    /**
+     * A call is one message, even if more than one of the methods is the one that
+     * it calls (a method and the one that overrides it).
+     */
+    public function testACallThatSeveralMethodsMatchIsOneMessage(): void
+    {
+        $references = $this->scanWith(
+            [
+                new MessageMethod(FixtureMessageUser::class, 'translate', domain: 'first'),
+                new MessageMethod(FixtureMessageMethods::class, 'translate', domain: 'second'),
+            ],
+            '\\' . FixtureMessageUser::class . "::translate('Matched twice.');"
+        );
+
+        $this->assertSame([['Matched twice.', 'first']], array_map(fn (MessageReference $r) => [$r->id, $r->domain], $references));
     }
 }

@@ -183,6 +183,51 @@ final class TranslatableAwareTest extends TestCase
     }
 
     /**
+     * The exception is serialized with everything that is needed to restore it,
+     * except the trace.
+     */
+    public function testTheExceptionIsSerializedWithItsPreviousThrowableAndItsDefaultLocale(): void
+    {
+        $previous = new \Exception('Previous.');
+        $exception = new class ('Cannot read.', 3, $previous) extends TranslatableRuntimeException {
+            protected ?string $defaultLocale = 'es';
+        };
+
+        $data = $exception->__serialize();
+
+        $this->assertArrayHasKey('previous', $data);
+        $this->assertSame($previous, $data['previous']);
+        $this->assertArrayHasKey('defaultLocale', $data);
+        $this->assertSame('es', $data['defaultLocale']);
+        $this->assertSame('errors', $data['defaultDomain']);
+        $this->assertSame(3, $data['code']);
+    }
+
+    /**
+     * If the data has the current key and the old one, the current one is read.
+     */
+    public function testTheCurrentKeyOfTheTranslatableValueWinsOverTheOldOne(): void
+    {
+        $current = new TranslatableMessage('Current.');
+        $old = new TranslatableMessage('Old.');
+        $exception = (new ReflectionClass(TranslatableRuntimeException::class))->newInstanceWithoutConstructor();
+
+        $exception->__unserialize([
+            'message' => 'Current.',
+            'code' => 0,
+            'file' => __FILE__,
+            'line' => __LINE__,
+            'previous' => null,
+            'defaultDomain' => 'errors',
+            'defaultLocale' => null,
+            'translatable' => $current,
+            'translatableMessage' => $old,
+        ]);
+
+        $this->assertSame($current, $exception->getTranslatable());
+    }
+
+    /**
      * What is serialized by the exception itself is always valid, so only data
      * that was changed, damaged or made by another class can be rejected.
      *

@@ -168,4 +168,58 @@ final class TranslationResourceRegistrarTest extends TestCase
             )
         );
     }
+
+    /**
+     * The path of each file given to the translator is the one of the directory
+     * and the name of the file, whether the directory ends with a slash or not.
+     */
+    public function testTheDirectoryCanEndWithASlash(): void
+    {
+        $translator = new class ('en') extends Translator {
+            /**
+             * @var list<string>
+             */
+            public array $registered = [];
+
+            public function addResource(string $format, mixed $resource, string $locale, ?string $domain = null): void
+            {
+                if (is_string($resource)) {
+                    $this->registered[] = $resource;
+                }
+
+                parent::addResource($format, $resource, $locale, $domain);
+            }
+        };
+
+        (new TranslationResourceRegistrar($translator))->registerDirectory($this->fixturesDir . '/');
+
+        $this->assertNotEmpty($translator->registered);
+        foreach ($translator->registered as $path) {
+            $this->assertSame($this->fixturesDir . '/' . basename($path), $path);
+        }
+    }
+
+    public function testTheExtensionOfAFileIsNotCaseSensitive(): void
+    {
+        $directory = sys_get_temp_dir() . '/translation-registrar-' . uniqid('', true);
+        mkdir($directory);
+        file_put_contents($directory . '/greetings.en.YAML', "hello: Hello\n");
+
+        try {
+            $this->registrar->registerDirectory($directory);
+
+            $this->assertSame('Hello', $this->translator->trans('hello', [], 'greetings', 'en'));
+        } finally {
+            unlink($directory . '/greetings.en.YAML');
+            rmdir($directory);
+        }
+    }
+
+    public function testAnExtensionThatIsNotRecognizedSaysWhichOnesAre(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Supported extensions: yaml, yml, json, php, xlf, xliff, po, mo, csv, ini.');
+
+        $this->registrar->registerDirectory($this->errorsDir . '/unsupported-extension');
+    }
 }

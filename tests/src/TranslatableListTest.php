@@ -339,4 +339,32 @@ final class TranslatableListTest extends TestCase
             );
         }
     }
+
+    /**
+     * The items are a list: the keys of the iterable that they come from are not
+     * used, so two items with the same key are two items.
+     */
+    public function testTheKeysOfTheIterableAreNotUsed(): void
+    {
+        $items = (static function () {
+            yield 'key' => 'x';
+            yield 'key' => 'y';
+        })();
+
+        $this->assertSame('x, y', (string) TranslatableList::separated($items, ', '));
+    }
+
+    public function testTheItemsOfAnArrayWithKeysAreAList(): void
+    {
+        $list = TranslatableList::separated(['a' => 'x', 'b' => 'y'], ', ');
+
+        $this->assertSame(['x', 'y'], $list->jsonSerialize()['items']);
+    }
+
+    public function testAnEnumerationOfTranslatablesIsWrittenWithoutATranslator(): void
+    {
+        $list = TranslatableList::enumeration([new TranslatableMessage('Red'), 'Blue']);
+
+        $this->assertSame('Red and Blue', (string) $list);
+    }
 }

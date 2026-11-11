@@ -84,7 +84,14 @@ final class TranslationAudit
         }
 
         $notUsed = [];
-        $domains = array_filter($catalogue->getDomains(), is_string(...));
+        // The name of a domain that is a number is an integer, as it is the key of
+        // an array: it is a domain like any other.
+        $domains = [];
+        foreach ($catalogue->getDomains() as $domain) {
+            if (is_string($domain) || is_int($domain)) {
+                $domains[] = (string) $domain;
+            }
+        }
         sort($domains);
         foreach ($domains as $domain) {
             foreach (array_diff(array_keys($catalogue->all($domain)), $used[$domain] ?? []) as $id) {

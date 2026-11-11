@@ -95,7 +95,7 @@ final class TranslationAuditTest extends TestCase
      *
      * @param array<string, string> $files File name => the PHP that goes in it,
      * after the header.
-     * @param array<string, array<string, string>> $catalogues File name => the
+     * @param array<string, array<int|string, string>> $catalogues File name => the
      * entries of the catalogue.
      * @return array{string, SimpleTranslationResourceProvider}
      */
@@ -389,5 +389,114 @@ final class TranslationAuditTest extends TestCase
         [$source, $provider] = $this->package(['a.php' => 'function a(): void {}'], ['errors+intl-icu.es.php' => []]);
 
         $this->assertSame([], $this->audit($source, $provider)->describe([]));
+    }
+
+    /**
+     * A message that can not be read does not stop the audit: the ones that
+     * follow it in the same code are checked.
+     */
+    public function testTheMessagesThatFollowADynamicOneAreChecked(): void
+    {
+        [$source, $provider] = $this->package(
+            ['a.php' => "function a(\$m): void { throw new TranslatableException(\$m); throw new TranslatableException('No entry.'); }"],
+            ['errors+intl-icu.es.php' => []]
+        );
+
+        $report = $this->audit($source, $provider);
+
+        $this->assertCount(1, $report->dynamicMessages);
+        $this->assertCount(1, $report->missingTranslations);
+    }
+
+    /**
+     * The domains are reported in alphabetical order, whatever the order in
+     * which the providers registered them.
+     */
+    public function testTheDomainsAreReportedInAlphabeticalOrder(): void
+    {
+        [$source, $first] = $this->package(
+            ['a.php' => 'function a(): void {}'],
+            ['zeta+intl-icu.es.php' => ['Z.' => 'Z.']]
+        );
+        [, $second] = $this->package([], ['alpha+intl-icu.es.php' => ['A.' => 'A.']]);
+
+        $report = (new TranslationAudit())->audit($source, [$first, $second]);
+
+        $this->assertSame(
+            [['domain' => 'alpha', 'id' => 'A.'], ['domain' => 'zeta', 'id' => 'Z.']],
+            $report->notUsedBySources
+        );
+    }
+
+    /**
+     * The id of an entry is a string, even if it is a number (PHP makes it an
+     * integer when it is the key of an array).
+     */
+    public function testTheIdOfAnEntryThatIsANumberIsAString(): void
+    {
+        [$source, $provider] = $this->package(
+            ['a.php' => 'function a(): void {}'],
+            ['errors+intl-icu.es.php' => ['404' => 'No encontrado.']]
+        );
+
+        $report = $this->audit($source, $provider);
+
+        $this->assertSame([['domain' => 'errors', 'id' => '404']], $report->notUsedBySources);
+    }
+
+    /**
+     * The exceptions that are not translatable are a list, also when the ones
+     * that were allowed are left out.
+     */
+    public function testTheExceptionsThatAreNotTranslatableAreAListWhenSomeAreAllowed(): void
+    {
+        [$source, $provider] = $this->package(
+            [
+                'a.php' => "function a(): void { throw new \\RuntimeException('Allowed.'); }\n"
+                    . "function b(): void { throw new \\InvalidArgumentException('Not allowed.'); }",
+            ],
+            ['errors+intl-icu.es.php' => []]
+        );
+
+        $report = $this->audit($source, $provider, [RuntimeException::class]);
+
+        $this->assertCount(1, $report->notTranslatable);
+        $this->assertSame([0], array_keys($report->notTranslatable));
+    }
+
+    /**
+     * The directory that was audited can end with a slash: the files are still
+     * described relative to it.
+     */
+    public function testDescribeIsRelativeToTheAuditedDirectoryThatEndsWithASlash(): void
+    {
+        $report = new TranslationAuditReport(
+            '/audited/src/',
+            [],
+            [],
+            [],
+            [new ThrowReference(RuntimeException::class, null, '/audited/src/a.php', 3, true)],
+            false
+        );
+
+        $this->assertSame(['a.php:3 RuntimeException'], $report->describe($report->notTranslatable));
+    }
+
+    /**
+     * A domain whose name is a number is a domain like any other, also when its
+     * file has no `+intl-icu` suffix (PHP makes its name an integer when it is
+     * the key of an array).
+     */
+    public function testADomainThatIsANumberIsChecked(): void
+    {
+        [$source, $provider] = $this->package(
+            ['a.php' => "function a(): void { new TranslatableMessage('Used.', [], '404'); }"],
+            ['404.es.php' => ['Used.' => 'Usado.', 'Not used.' => 'No usado.']]
+        );
+
+        $report = $this->audit($source, $provider);
+
+        $this->assertSame([['domain' => '404', 'id' => 'Not used.']], $report->notUsedBySources);
+        $this->assertSame([], $report->missingTranslations);
     }
 }

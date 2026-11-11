@@ -94,4 +94,21 @@ final class TranslatorFactoryTest extends TestCase
             $translator->trans('welcome', ['name' => 'John'], 'messages+intl-icu')
         );
     }
+
+    /**
+     * The providers are a list: the keys of the iterable that they come from are
+     * not used, so two providers with the same key are both registered.
+     */
+    public function testProvidersWithTheSameKeyAreAllRegistered(): void
+    {
+        $providers = (static function () {
+            yield 'provider' => new SimpleTranslationResourceProvider([__DIR__ . '/../fixtures/translations']);
+            yield 'provider' => new SimpleTranslationResourceProvider([__DIR__ . '/../fixtures/translations-override']);
+        })();
+
+        $translator = TranslatorFactory::create('en', [], $providers);
+
+        $this->assertSame('Yo, John!', $translator->trans('welcome', ['name' => 'John'], 'messages+intl-icu'));
+        $this->assertSame('Goodbye John!', $translator->trans('goodbye', ['name' => 'John'], 'messages+intl-icu'));
+    }
 }

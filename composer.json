@@ -38,7 +38,8 @@
         "phpunit/phpunit": "^13.4",
         "symfony/config": "^8.1",
         "symfony/dependency-injection": "^8.1",
-        "nikic/php-parser": "^5.9"
+        "nikic/php-parser": "^5.9",
+        "infection/infection": "^0.35.10"
     },
     "suggest": {
         "nikic/php-parser": "Required by Derafu\\Translation\\Lint (reads the code to find the messages that are built to be translated)."
@@ -48,10 +49,16 @@
         "tests": "XDEBUG_MODE=coverage vendor/bin/phpunit --configuration=phpunit.xml",
         "phpcs-fix": "vendor/bin/php-cs-fixer fix -v --config=php-cs-fixer.php",
         "phpcs": "vendor/bin/php-cs-fixer fix -v --dry-run --diff --config=php-cs-fixer.php",
+        "infection": "XDEBUG_MODE=coverage vendor/bin/infection --threads=max --no-progress --with-uncovered",
         "phpstan": "vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=1G",
         "phpstan-export": "vendor/bin/phpstan analyse --configuration=phpstan.neon --level 9 --generate-baseline",
         "build": "npm run build"
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    }
 }

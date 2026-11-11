@@ -284,4 +284,48 @@ final class TranslatableExceptionTest extends TestCase
             $exception->trans($translator)
         );
     }
+
+    /**
+     * The locale that is given to `trans()` is the one that is used, even if the
+     * exception has a default locale.
+     */
+    public function testAnExplicitLocaleWinsOverTheDefaultLocale(): void
+    {
+        $exception = new class ('custom.message') extends TranslatableException {
+            protected ?string $defaultLocale = 'es';
+        };
+
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with('custom.message', [], 'errors', 'fr')
+            ->willReturn('Message personnalisé');
+
+        $this->assertSame('Message personnalisé', $exception->trans($translator, 'fr'));
+    }
+
+    public function testTheDefaultCodeIsZero(): void
+    {
+        $this->assertSame(0, (new TranslatableException('Test'))->getCode());
+    }
+
+    /**
+     * The normalization of the message is an extension point: a class that
+     * extends the exception can use it.
+     */
+    public function testTheNormalizationOfTheMessageCanBeUsedByAChildClass(): void
+    {
+        $exception = new class ('Test') extends TranslatableException {
+            /**
+             * @param string|array<int|string, mixed>|TranslatableInterface $message
+             */
+            public function normalized(string|array|TranslatableInterface $message): string
+            {
+                return $this->normalizeMessage($message);
+            }
+        };
+
+        $this->assertSame('Error with test', $exception->normalized(['Error with {param}', 'param' => 'test']));
+    }
 }

@@ -394,4 +394,31 @@ final class TranslatableMessageTest extends TestCase
 
         $this->assertSame('Created on {created, date}.', (string) $message);
     }
+
+    /**
+     * Without a translator the message is formatted with its default locale, so
+     * the numbers are written as that language writes them.
+     */
+    public function testAMessageIsFormattedWithItsDefaultLocaleWithoutATranslator(): void
+    {
+        $message = new TranslatableMessage('{amount, number}', ['amount' => 1234567.5], null, 'de');
+
+        $this->assertSame('1.234.567,5', (string) $message);
+    }
+
+    /**
+     * With a translator the parameters are given as they are: the translator
+     * (and not this message) decides what to do with an array.
+     */
+    public function testAnArrayParameterIsGivenAsItIsToATranslator(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with('Items: {items}', ['items' => ['a', 'b']], null, null)
+            ->willReturn('Items: a, b');
+
+        $this->assertSame('Items: a, b', (new TranslatableMessage('Items: {items}', ['items' => ['a', 'b']]))->trans($translator));
+    }
 }
