@@ -18,7 +18,7 @@ use Derafu\Translation\TranslatableMessage;
  * A class with methods that receive the id of a message, like the ones that some
  * packages have to build their translatable messages.
  */
-class FixtureMessageMethods
+class FixtureMessageMethods implements FixtureMessageSource
 {
     /**
      * The id is the first argument and the domain is the third, if it is given.

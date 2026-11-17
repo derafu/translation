@@ -23,19 +23,26 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\NullsafeMethodCall;
+use PhpParser\Node\Expr\NullsafePropertyFetch;
+use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PhpParser\Node\NullableType;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Catch_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Trait_;
+use PhpParser\Node\UnionType;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\PrettyPrinter\Standard;
 use ReflectionClass;
+use ReflectionException;
+use ReflectionNamedType;
+use ReflectionProperty;
 use Symfony\Component\Translation\TranslatableMessage as SymfonyTranslatableMessage;
 use Throwable;
 
@@ -78,6 +85,17 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
      * @var list<array{name: string|null, translatable: bool}>
      */
     private array $catches = [];
+
+    /**
+     * The variables of the functions being read, from the outer to the inner one,
+     * with the class of their type: the parameters of the function and, in a
+     * closure, the variables that it takes with `use`. A variable that is not a
+     * class (or has no type) has `null`. The function of an arrow function also
+     * sees the variables of the one that contains it.
+     *
+     * @var list<array{variables: array<string, class-string|null>, inherits: bool}>
+     */
+    private array $variableScopes = [];
 
     /**
      * Names of the parameters of the constructors being read.
@@ -139,13 +157,16 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             $this->scopes[] = $node->namespacedName?->toString() ?? 'class@anonymous';
         } elseif ($node instanceof Function_) {
             $this->functions[] = $node->namespacedName?->toString() ?? $node->name->toString();
+            $this->enterVariables($node);
         } elseif ($node instanceof Catch_) {
             $this->catches[] = $this->catchOf($node);
         } elseif ($node instanceof Closure || $node instanceof ArrowFunction) {
             $this->functions[] = ($this->currentFunction() ?? '') === ''
                 ? '{closure}'
                 : $this->currentFunction() . '::{closure}';
+            $this->enterVariables($node);
         } elseif ($node instanceof ClassMethod) {
+            $this->enterVariables($node);
             $this->functions[] = ($this->scopes === [] ? '' : $this->scopes[array_key_last($this->scopes)] . '::')
                 . $node->name->toString();
             $this->idParameters[] = $this->idParameterOf($node);
@@ -179,8 +200,10 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             array_pop($this->catches);
         } elseif ($node instanceof Function_ || $node instanceof Closure || $node instanceof ArrowFunction) {
             array_pop($this->functions);
+            array_pop($this->variableScopes);
         } elseif ($node instanceof ClassMethod) {
             array_pop($this->functions);
+            array_pop($this->variableScopes);
             array_pop($this->idParameters);
             if ($node->name->toLowerString() === '__construct') {
                 array_pop($this->constructorParameters);
@@ -565,18 +588,10 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             return;
         }
 
-        [$class, $known] = $this->receiverOf($call);
+        [$class, $known, $typed] = $this->receiverOf($call);
 
         if (!$known) {
-            $this->references[] = new MessageReference(
-                null,
-                null,
-                $candidates[0]['class'],
-                $this->file,
-                $call->getStartLine(),
-                $this->currentFunction(),
-                $this->printCall($call)
-            );
+            $this->references[] = $this->unknownReceiver($call, $candidates[0]['class']);
 
             return;
         }
@@ -608,32 +623,200 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
 
             return;
         }
+
+        // The type of a variable or of a property is what it is declared as: the
+        // object can be one of a subclass. When the type is wider than the class
+        // of the method (an interface that it implements), the call can be one
+        // of its messages, and it is not known.
+        if ($typed) {
+            foreach ($candidates as $configured) {
+                if (is_a($configured['class'], $class, true)) {
+                    $this->references[] = $this->unknownReceiver($call, $configured['class']);
+
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * The reference to a call of one of the methods whose receiver is not known:
+     * it can not be checked, so it is not a message that is read.
+     *
+     * @param class-string $class
+     */
+    private function unknownReceiver(MethodCall|NullsafeMethodCall|StaticCall $call, string $class): MessageReference
+    {
+        return new MessageReference(
+            null,
+            null,
+            $class,
+            $this->file,
+            $call->getStartLine(),
+            $this->currentFunction(),
+            $this->printCall($call)
+        );
     }
 
     /**
      * The class of what a call is made on, and whether it is known by reading:
-     * `$this`, `self`, `static`, `parent` and the name of a class. Anything else
-     * (a variable, a property, the result of a call) is not known.
+     * `$this`, `self`, `static`, `parent` and the name of a class, and also a
+     * property of `$this` or a variable that is a parameter of the function (or a
+     * variable of a closure taken with `use`) that has the type of a class, a
+     * nullable one or a union of one and `null`. Anything else (a variable that is
+     * assigned, the result of a call, a type that is not a class) is not known.
      *
-     * @return array{class-string|null, bool}
+     * The third element says whether the class is the declared type of a variable
+     * or of a property, which can be wider than the class of the object.
+     *
+     * @return array{class-string|null, bool, bool}
      */
     private function receiverOf(MethodCall|NullsafeMethodCall|StaticCall $call): array
     {
         if ($call instanceof StaticCall) {
             if (!$call->class instanceof Name) {
-                return [null, false];
+                return [null, false, false];
             }
 
-            return [$this->resolve($call->class), true];
+            return [$this->resolve($call->class), true, false];
         }
 
-        if ($call->var instanceof Variable && $call->var->name === 'this') {
+        $receiver = $call->var;
+
+        if ($receiver instanceof Variable && $receiver->name === 'this') {
             $class = $this->currentClass();
 
-            return [$class, $class !== null];
+            return [$class, $class !== null, false];
         }
 
-        return [null, false];
+        $declared = match (true) {
+            ($receiver instanceof PropertyFetch || $receiver instanceof NullsafePropertyFetch)
+                && $receiver->var instanceof Variable
+                && $receiver->var->name === 'this'
+                && $receiver->name instanceof Identifier => $this->classOfProperty($receiver->name->toString()),
+            $receiver instanceof Variable && is_string($receiver->name) => $this->classOfVariable($receiver->name),
+            default => null,
+        };
+
+        return $declared === null ? [null, false, false] : [$declared, true, true];
+    }
+
+    /**
+     * Starts the variables of a function: its parameters, and the variables that
+     * a closure takes with `use`.
+     */
+    private function enterVariables(Function_|ClassMethod|Closure|ArrowFunction $function): void
+    {
+        $variables = [];
+
+        if ($function instanceof Closure) {
+            foreach ($function->uses as $use) {
+                if (is_string($use->var->name)) {
+                    $variables[$use->var->name] = $this->classOfVariable($use->var->name);
+                }
+            }
+        }
+
+        foreach ($function->params as $param) {
+            if ($param->var instanceof Variable && is_string($param->var->name)) {
+                $variables[$param->var->name] = $this->classOfType($param->type);
+            }
+        }
+
+        $this->variableScopes[] = ['variables' => $variables, 'inherits' => $function instanceof ArrowFunction];
+    }
+
+    /**
+     * The class of the type of a variable of the function being read, if it is a
+     * parameter (or taken by a closure) whose type is a class.
+     *
+     * @return class-string|null
+     */
+    private function classOfVariable(string $name): ?string
+    {
+        for ($index = count($this->variableScopes) - 1; $index >= 0; $index--) {
+            $scope = $this->variableScopes[$index];
+
+            if (array_key_exists($name, $scope['variables'])) {
+                return $scope['variables'][$name];
+            }
+
+            if (!$scope['inherits']) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The class of the type of a property of the class being read (also an
+     * inherited one, or a promoted one of its constructor), if it is a class.
+     *
+     * @return class-string|null
+     */
+    private function classOfProperty(string $property): ?string
+    {
+        $class = $this->currentClass();
+        if ($class === null) {
+            return null;
+        }
+
+        try {
+            $type = (new ReflectionProperty($class, $property))->getType();
+        } catch (ReflectionException) {
+            return null;
+        }
+
+        // A property of the type `X|null` has a nullable type of one class, and
+        // `self` is reported as the name of the class: what is not a named type
+        // is a union of two or more types, so it is not one class.
+        if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
+            return null;
+        }
+
+        return $this->typeName($type->getName());
+    }
+
+    /**
+     * The class of a type written in the code: a class, an interface or an
+     * enum, also nullable or in a union with `null`.
+     *
+     * @return class-string|null
+     */
+    private function classOfType(?Node $type): ?string
+    {
+        if ($type instanceof NullableType) {
+            return $this->classOfType($type->type);
+        }
+
+        if ($type instanceof UnionType) {
+            $named = array_values(array_filter(
+                $type->types,
+                fn (Node $member) => !($member instanceof Identifier && $member->toLowerString() === 'null')
+            ));
+
+            return count($named) === 1 ? $this->classOfType($named[0]) : null;
+        }
+
+        if (!$type instanceof Name) {
+            return null;
+        }
+
+        return $type->isSpecialClassName() ? $this->resolve($type) : $this->typeName($type->toString());
+    }
+
+    /**
+     * @return class-string|null
+     */
+    private function typeName(string $name): ?string
+    {
+        try {
+            return class_exists($name) || interface_exists($name) || enum_exists($name) ? $name : null;
+        } catch (Throwable) {
+            // A type that can not be loaded is not known.
+            return null;
+        }
     }
 
     /**
