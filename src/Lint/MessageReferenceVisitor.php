@@ -36,10 +36,15 @@ use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\PrettyPrinter\Standard;
 use ReflectionClass;
+use Symfony\Component\Translation\TranslatableMessage as SymfonyTranslatableMessage;
 use Throwable;
 
 /**
  * Collects the messages that a file builds to be translated.
+ *
+ * A message is built by a translatable exception, by a `TranslatableMessage` of
+ * this package or by the one of `symfony/translation` (or a class that extends
+ * it): both take the message, the parameters and the domain in the same way.
  *
  * It must run after the names are resolved (`NameResolver`).
  *
@@ -227,7 +232,7 @@ final class MessageReferenceVisitor extends NodeVisitorAbstract
             return;
         }
 
-        if ($class === TranslatableMessage::class) {
+        if ($class === TranslatableMessage::class || is_a($class, SymfonyTranslatableMessage::class, true)) {
             $this->collectTranslatableMessage($node, $class);
 
             return;

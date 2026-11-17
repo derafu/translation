@@ -14,7 +14,8 @@ namespace Derafu\Translation\Lint;
 
 /**
  * A message found in the code that is built to be translated: the one given to
- * a translatable exception or to a `TranslatableMessage`.
+ * a translatable exception or to a `TranslatableMessage` (the one of this
+ * package or the one of `symfony/translation`).
  *
  * Part of the lint tools: it is for tools and tests, never for the code that
  * runs the package.

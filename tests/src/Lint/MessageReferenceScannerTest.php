@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\TestsTranslation\Lint;
 
 use Derafu\TestsTranslation\Lint\Fixture\FixtureDefaultMessageException;
+use Derafu\TestsTranslation\Lint\Fixture\FixtureSymfonyMessageChild;
 use Derafu\Translation\Lint\MessageReference;
 use Derafu\Translation\Lint\MessageReferenceScanner;
 use Derafu\Translation\Lint\MessageReferenceVisitor;
@@ -25,6 +26,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesTrait;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Translation\TranslatableMessage as SymfonyTranslatableMessage;
 
 /**
  * Finds the messages that the code builds to be translated: the ones given to
@@ -547,6 +549,32 @@ final class MessageReferenceScannerTest extends TestCase
             $this->idsAndDomains($references)
         );
         $this->assertSame(TranslatableMessage::class, $references[0]->class);
+    }
+
+    public function testTheTranslatableMessageOfSymfonyIsFoundWithItsDomain(): void
+    {
+        $references = $this->scan(
+            "new \\Symfony\\Component\\Translation\\TranslatableMessage('One.');\n"
+            . "new \\Symfony\\Component\\Translation\\TranslatableMessage('Two.', ['a' => 1], 'custom');\n"
+            . "new \\Symfony\\Component\\Translation\\TranslatableMessage(message: 'Three.', domain: 'named');\n"
+            . "new \\Symfony\\Component\\Translation\\TranslatableMessage('Four.', [], null);\n"
+            . "new \\Symfony\\Component\\Translation\\TranslatableMessage('Five.', [], \$domain);"
+        );
+
+        $this->assertSame(
+            [['One.', 'messages'], ['Two.', 'custom'], ['Three.', 'named'], ['Four.', 'messages'], ['Five.', null]],
+            $this->idsAndDomains($references)
+        );
+        $this->assertSame(SymfonyTranslatableMessage::class, $references[0]->class);
+        $this->assertTrue($references[4]->isDynamic());
+    }
+
+    public function testAClassThatExtendsTheTranslatableMessageOfSymfonyIsFound(): void
+    {
+        $references = $this->scan("new \\Derafu\\TestsTranslation\\Lint\\Fixture\\FixtureSymfonyMessageChild('Child.', [], 'child');");
+
+        $this->assertSame([['Child.', 'child']], $this->idsAndDomains($references));
+        $this->assertSame(FixtureSymfonyMessageChild::class, $references[0]->class);
     }
 
     public function testADomainThatIsNotALiteralIsReportedAsDynamic(): void

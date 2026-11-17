@@ -24,7 +24,8 @@ use ReflectionMethod;
 
 /**
  * Finds the messages that the code builds to be translated: the ones given to
- * a translatable exception or to a `TranslatableMessage`.
+ * a translatable exception or to a `TranslatableMessage` (the one of this
+ * package or the one of `symfony/translation`).
  *
  * It reads the code (nothing runs), so a comment or a string that only looks
  * like a `new` is never taken for one. The classes are told apart by what they
